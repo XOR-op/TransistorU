@@ -5,9 +5,9 @@ module regFile(
     input [`REG_WIDTH ] read1, input [`REG_WIDTH ] read2,
     output [`DATA_WIDTH ] value1, output [`DATA_WIDTH ] value2,
     output [`ROB_WIDTH ] rob_tag1, output [`ROB_WIDTH ] rob_tag2,
-    // set rob_tag by decoder
+    // set rd's rob_tag by decoder
     input [`REG_WIDTH ] occupied_reg1, input [`ROB_WIDTH ] occupied_rob_tag1,
-    input [`REG_WIDTH ] occupied_reg2, input [`ROB_WIDTH ] occupied_rob_tag2,
+    // input [`REG_WIDTH ] occupied_reg2, input [`ROB_WIDTH ] occupied_rob_tag2,
     // set value by rob
     input [`REG_WIDTH ] set_value, input [`ROB_WIDTH ] in_rob_entry_tag,
     input [`DATA_WIDTH ] in_new_value,
@@ -32,15 +32,15 @@ module regFile(
                     rob_tags[regi] <= occupied_rob_tag1;
                     busy[regi] <= `TRUE;
                 end
-                if (occupied_reg2 != `ZERO_REG && occupied_reg2 == regi) begin
-                    rob_tags[regi] <= occupied_rob_tag2;
-                    busy[regi] <= `TRUE;
-                end
+                // if (occupied_reg2 != `ZERO_REG && occupied_reg2 == regi) begin
+                //     rob_tags[regi] <= occupied_rob_tag2;
+                //     busy[regi] <= `TRUE;
+                // end
             end
         end
     endgenerate
     always @(*) begin
-        // read1 and read2 are always available
+        // for reg0 is always 0, read1 and read2 are always available
         value1 = datas[read1];
         value2 = datas[read2];
         rob_tag1 = Qis[read1];

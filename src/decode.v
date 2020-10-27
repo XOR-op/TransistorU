@@ -1,29 +1,9 @@
-`timescale 1ns/1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date: 10/03/2020 10:56:57 PM
-// Design Name: 
-// Module Name: decode
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
 `include "constant.v"
 module decode(
     input clk, input ena,
     input [`INSTRUCTION_WIDTH] inst,
     // to regfile
-    output [`REG_WIDTH ] rs1, output [`REG_WIDTH ] rs2,
+    output [`REG_WIDTH ] rs1, output [`REG_WIDTH ] rs2,output [`REG_WIDTH ] rd,
     // from regfile
     input [`DATA_WIDTH ] in_operand1, input [`DATA_WIDTH ] in_operand2,
     input [`ROB_WIDTH ] in_tag1, input [`ROB_WIDTH ] in_tag2,
@@ -34,7 +14,7 @@ module decode(
     input in_tag1_ready, input in_tag2_ready,
     input [`DATA_WIDTH ] ready_value1, input [`DATA_WIDTH ] ready_value2,
     // to RS
-    output [`REG_WIDTH ] rd, output [`IMM_WIDTH ] imm, output [`OPERATION_BUS] op,
+    output [`IMM_WIDTH ] imm, output [`OPERATION_BUS] op,
     output [`DATA_WIDTH ] operand1, output [`DATA_WIDTH ] operand2,
     output [`ROB_WIDTH ] tag1, output [`ROB_WIDTH ] tag2
 );

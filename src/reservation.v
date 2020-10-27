@@ -1,20 +1,19 @@
 `include "constant.v"
 
 module reservation(
-    input clk, input rst,
+    input clk, input rst,input ena,
     // assignment
     input assignment,
     input [`OPERATION_BUS ] in_op,
     input [`ROB_WIDTH ] in_Qj, input [`ROB_WIDTH ] in_Qk,
     input [`DATA_WIDTH ] in_Vj, input [`DATA_WIDTH ] in_Vk,
     input [`DATA_WIDTH ] in_A,
-    input [`ROB_WIDTH ] in_rob_tag,
     // CDB broadcast
     input [`ROB_WIDTH ] newest_data_rob_tag, input [`DATA_WIDTH ] newest_data,
     // pass to alu
-    output reg [`OPERATION_BUS ] op,
-    output reg [`DATA_WIDTH ] Vj, output reg [`DATA_WIDTH ] Vk, output reg [`DATA_WIDTH ] A,
-    output reg [`ROB_WIDTH ] rob_tag,
+    output reg [`OPERATION_BUS ] out_op,
+    output reg [`DATA_WIDTH ] out_Vj, output reg [`DATA_WIDTH ] out_Vk, output reg [`DATA_WIDTH ] out_A,
+    output reg [`ROB_WIDTH ] out_rob_tag,
     // return to decoder
     output reg has_capacity
 );
@@ -32,7 +31,7 @@ module reservation(
     assign has_capacity = size == `RS_COUNT;
     reg [`RS_WIDTH ] free_rs_tag;
     wire ready_to_issue [`RS_COUNT :1];
-    reg issue_
+    reg [`RS_WIDTH ] what_to_issue;
     // broadcast
     generate
         genvar i;
@@ -61,13 +60,43 @@ module reservation(
         end
     end
 
-    // *todo* choose op to ALU
+    // choose op to ALU
     generate
         genvar i;
         for (i = 1;i <= `RS_COUNT;i++) begin : gen_ready_sig
-            assign ready_to_issue[i]=busy[i]&(Qj[i]==`ZERO_ROB )&(Qk[i]==`ZERO_ROB );
+            assign ready_to_issue[i] = busy[i] &(Qj[i] == `ZERO_ROB) &(Qk[i] == `ZERO_ROB);
         end
     endgenerate
+    always @(*) begin
+        case (ready_to_issue)
+            15'b1xxxxxxxxxxxxxx: what_to_issue = 1;
+            15'bx1xxxxxxxxxxxxx: what_to_issue = 2;
+            15'bxx1xxxxxxxxxxxx: what_to_issue = 3;
+            15'bxxx1xxxxxxxxxxx: what_to_issue = 4;
+            15'bxxxx1xxxxxxxxxx: what_to_issue = 5;
+            15'bxxxxx1xxxxxxxxx: what_to_issue = 6;
+            15'bxxxxxx1xxxxxxxx: what_to_issue = 7;
+            15'bxxxxxxx1xxxxxxx: what_to_issue = 8;
+            15'bxxxxxxxx1xxxxxx: what_to_issue = 9;
+            15'bxxxxxxxxx1xxxxx: what_to_issue = 10;
+            15'bxxxxxxxxxx1xxxx: what_to_issue = 11;
+            15'bxxxxxxxxxxx1xxx: what_to_issue = 12;
+            15'bxxxxxxxxxxxx1xx: what_to_issue = 13;
+            15'bxxxxxxxxxxxxx1x: what_to_issue = 14;
+            15'bxxxxxxxxxxxxxx1: what_to_issue = 15;
+            default: what_to_issue = `ZERO_RS;
+        endcase
+    end
+    always @(posedge clk) begin
+        // issue to alu
+        if (~rst) begin
+            out_op <= op[what_to_issue];
+            out_Vk <= Vk[what_to_issue];
+            out_Vj <= Vj[what_to_issue];
+            out_A <= A[what_to_issue];
+            out_rob_tag <= rob_tag[what_to_issue];
+        end
+    end
 
 
     // priority encoder-like
