@@ -1,6 +1,7 @@
 `include "constant.v"
-module issue(
+module ICache(
     input clk,input rst,
 
 );
-endmodule : issue
+
+endmodule : ICache

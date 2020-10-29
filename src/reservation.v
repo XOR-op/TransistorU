@@ -4,16 +4,17 @@ module reservation(
     input clk, input rst,input ena,
     // assignment
     input assignment,
+    input [`DATA_WIDTH ] in_imm,
     input [`OPERATION_BUS ] in_op,
     input [`ROB_WIDTH ] in_Qj, input [`ROB_WIDTH ] in_Qk,
     input [`DATA_WIDTH ] in_Vj, input [`DATA_WIDTH ] in_Vk,
-    input [`DATA_WIDTH ] in_A,
+    input [`DATA_WIDTH ] in_A,input [`DATA_WIDTH ] in_pc,
     // CDB broadcast
     input [`ROB_WIDTH ] newest_data_rob_tag, input [`DATA_WIDTH ] newest_data,
     // pass to alu
     output reg [`OPERATION_BUS ] out_op,
     output reg [`DATA_WIDTH ] out_Vj, output reg [`DATA_WIDTH ] out_Vk, output reg [`DATA_WIDTH ] out_A,
-    output reg [`ROB_WIDTH ] out_rob_tag,
+    output reg [`ROB_WIDTH ] out_rob_tag,output reg[`DATA_WIDTH ] out_pc,output reg[`DATA_WIDTH ]out_imm,
     // return to decoder
     output reg has_capacity
 );
@@ -26,6 +27,8 @@ module reservation(
     reg [`DATA_WIDTH ] A [`RS_COUNT :1];
     reg busy [`RS_WIDTH ];
     reg [`ROB_WIDTH ] rob_tag [`RS_COUNT :1];
+    reg [`DATA_WIDTH ] PCs [`RS_COUNT :1];
+    reg [`DATA_WIDTH ] imms[`RS_COUNT :1];
     // control variable
     reg [`DATA_WIDTH ] size;
     assign has_capacity = size == `RS_COUNT;
@@ -57,6 +60,8 @@ module reservation(
             {Vj[free_rs_tag], Vk[free_rs_tag]} <= {in_Vj, in_Vk};
             A[free_rs_tag] <= in_A;
             busy[free_rs_tag] <= 1'b1;
+            PCs[free_rs_tag]<= in_pc;
+            imms[free_rs_tag]<=in_imm;
         end
     end
 
@@ -95,6 +100,8 @@ module reservation(
             out_Vj <= Vj[what_to_issue];
             out_A <= A[what_to_issue];
             out_rob_tag <= rob_tag[what_to_issue];
+            out_pc<=PCs[what_to_issue];
+            out_imm<=imms[what_to_issue];
         end
     end
 

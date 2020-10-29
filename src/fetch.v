@@ -8,7 +8,9 @@ module fetcher(
     // from last cycle
     input [`DATA_WIDTH ] old_pc,
     // loopback and to i-cache
-    output [`DATA_WIDTH ] new_pc
+    output [`DATA_WIDTH ] new_pc,
+    // to controller
+    
 );
     always @(posedge clk)begin
         if(rst)begin

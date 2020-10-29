@@ -2,8 +2,9 @@
 module decode(
     input clk, input ena,
     input [`INSTRUCTION_WIDTH] inst,
+    input [`DATA_WIDTH ] current_pc,
     // to regfile
-    output [`REG_WIDTH ] rs1, output [`REG_WIDTH ] rs2,output [`REG_WIDTH ] rd,
+    output [`REG_WIDTH ] rs1, output [`REG_WIDTH ] rs2, output [`REG_WIDTH ] rd,
     // from regfile
     input [`DATA_WIDTH ] in_operand1, input [`DATA_WIDTH ] in_operand2,
     input [`ROB_WIDTH ] in_tag1, input [`ROB_WIDTH ] in_tag2,
@@ -14,10 +15,12 @@ module decode(
     input in_tag1_ready, input in_tag2_ready,
     input [`DATA_WIDTH ] ready_value1, input [`DATA_WIDTH ] ready_value2,
     // to RS
-    output [`IMM_WIDTH ] imm, output [`OPERATION_BUS] op,
+    output [`IMM_WIDTH ] imm,
+    output [`OPERATION_BUS] op,
     output [`DATA_WIDTH ] operand1, output [`DATA_WIDTH ] operand2,
-    output [`ROB_WIDTH ] tag1, output [`ROB_WIDTH ] tag2
+    output [`ROB_WIDTH ] tag1, output [`ROB_WIDTH ] tag2, output [`DATA_WIDTH ] current_pc_out
 );
+    assign current_pc_out = current_pc;
     // may accelerate imm calculation?
     reg [`DATA_WIDTH ] I_IMM, S_IMM, U_IMM, B_IMM, J_IMM;
     assign I_IMM = {{21{inst[31]}}, inst[30:20]},
@@ -35,7 +38,6 @@ module decode(
                 {rs1, rs2, rd} <= {`ZERO_REG , `ZERO_REG , inst[`RD_RANGE ]};
             end
             `AUIPC_OP: begin
-
                 op <= `AUIPC;
                 imm <= U_IMM;
                 {rs1, rs2, rd} <= {`ZERO_REG , `ZERO_REG , inst[`RD_RANGE ]};
@@ -83,6 +85,7 @@ module decode(
                 {rs1, rs2, rd} <= {inst[`RS1_RANGE ], inst[`RS2_RANGE ], inst[`RD_RANGE ]};
             end
             `ARITHMETIC_OP: begin
+                imm <= `ZERO_DATA;
                 case (inst[14:12])
                     `ADDorSUB3 : op <= (inst[31:25] == `NORMAL_FUNCT7) ?`ADD :`SUB;
                         `SLL3 : op <= `SLL;
@@ -96,15 +99,16 @@ module decode(
                 {rs1, rs2, rd} <= {inst[`RS1_RANGE ], inst[`RS2_RANGE ], inst[`RD_RANGE ]};
             end
             `ARITHMETIC_IMM_OP: begin
+                imm <= I_IMM;
                 case (inst[14:12])
-                    `ADDorSUB3 : op <= (inst[31:25] == `NORMAL_FUNCT7) ?`ADD :`SUB;
-                        `SLL3 : op <= `SLL;
-                        `SLT3 : op <= `SLT;
-                        `SLTU3 : op <= `SLTU;
-                        `XOR3 : op <= `XOR;
-                        `SRLorA3 : op <= (inst[31:25] == `NORMAL_FUNCT7) ?`SRL :`SRA;
-                        `OR3 : op <= `OR;
-                        `AND3 : op <= `AND;
+                    `ADDorSUB3 : op <= `ADDI;
+                        `SLL3 : op <= `SLLI;
+                        `SLT3 : op <= `SLTI;
+                        `SLTU3 : op <= `SLTIU;
+                        `XOR3 : op <= `XORI;
+                        `SRLorA3 : op <= (inst[31:25] == `NORMAL_FUNCT7) ?`SRLI :`SRAI;
+                        `OR3 : op <= `ORI;
+                        `AND3 : op <= `ANDI;
                 endcase
                 {rs1, rs2, rd} <= {inst[`RS1_RANGE ], `ZERO_REG , inst[`RD_RANGE ]};
             end
@@ -112,7 +116,7 @@ module decode(
                     // avoid latch
                     imm <= 0;
                     op <= `NOP;
-                    {rs1, rs2, rd} <= {`ZERO_REG ,`ZERO_REG ,`ZERO_REG };
+                    {rs1, rs2, rd} <= {`ZERO_REG , `ZERO_REG , `ZERO_REG };
                 end
             endcase
         end
@@ -127,8 +131,8 @@ module decode(
     end
     // get from ROB and output
     always @(*) begin
-        rob_operand1=in_tag1_ready?ready_value1:`ZERO_DATA ;
-        rob_operand2=in_tag2_ready?ready_value2:`ZERO_DATA ;
+        rob_operand1 = in_tag1_ready ? ready_value1:`ZERO_DATA;
+        rob_operand2 = in_tag2_ready ? ready_value2:`ZERO_DATA;
     end
     // decide output
     assign operand1 = in_tag1_ready ? rob_operand1:reg_operand1;

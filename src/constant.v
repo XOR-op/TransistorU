@@ -34,6 +34,7 @@
 `define RD_RANGE 11:7
 `define RS_WIDTH 3:0
 `define RS_COUNT 16
+`define RAM_WIDTH 7:0
 
 // constant
 `define ZERO_DATA 32'b0
@@ -45,6 +46,10 @@
 `define PREDICTED 32'b0
 `define MISPREDICTED 32'b1
 
+
+// agreement
+`define RAM_RD 1'b1
+`define RAM_WT 1'b0
 
 // opcode
 `define LUI_OP 7'b0110111
@@ -105,7 +110,7 @@
 `define SB 6'd16
 `define SH 6'd17
 `define SW 6'd18
-/*
+
 `define ADDI 6'd36
 `define SLTI 6'd37
 `define SLTIU 6'd29
@@ -115,7 +120,7 @@
 `define SLLI 6'd33
 `define SRLI 6'd34
 `define SRAI 6'd35
-*/
+
 `define ADD 6'd19
 `define SUB 6'd20
 `define SLL 6'd21
