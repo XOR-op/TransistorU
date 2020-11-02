@@ -35,6 +35,9 @@
 `define RS_WIDTH 3:0
 `define RS_COUNT 16
 `define RAM_WIDTH 7:0
+`define ICACHE_WIDTH 255:0
+`define TAG_WIDTH 31:10
+`define INDEX_WIDTH 9:2
 
 // constant
 `define ZERO_DATA 32'b0

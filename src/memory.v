@@ -21,12 +21,12 @@ module memory(
     reg [2:0] where_to_stop; // cur_bytes==where_to_stop then break
 
     assign busy = status != IDLE;
+    assign out_icache_data=buffered_data;
+    assign out_ls_data=buffered_data;
     always @(posedge clk) begin
         out_ram_ena <= `FALSE;
         out_icache_ok <= `FALSE;
         out_ls_ok <= `FALSE;
-        out_icache_data <= `ZERO_DATA;
-        out_ls_data <= `ZERO_DATA;
         if (rst) begin
             status<=IDLE;
         end else begin
@@ -79,10 +79,10 @@ module memory(
                             2'b00: buffered_data[7:0] <= in_ram_data;
                             2'b01: buffered_data[15:8] <= in_ram_data;
                             2'b10: buffered_data[23:16] <= in_ram_data;
+                            2'b11: buffered_data[31:24]<=in_ram_data;
                         endcase
                         if (cur_bytes == 2'b11) begin
                             // finish
-                            out_icache_data <= {in_ram_data, buffered_data[23:0]};
                             out_icache_ok <= `TRUE;
                             status <= IDLE;
                             out_ram_ena <= `FALSE ;
@@ -94,16 +94,12 @@ module memory(
                             2'b00: buffered_data[7:0] <= in_ram_data;
                             2'b01: buffered_data[15:8] <= in_ram_data;
                             2'b10: buffered_data[23:16] <= in_ram_data;
+                            2'b11: buffered_data[31:24]<=in_ram_data;
                         endcase
                         if (cur_bytes == where_to_stop) begin
                             // finish
-                            case (where_to_stop)
-                                2'b00:out_icache_data <= {24'b0,in_ram_data};
-                                2'b01:out_icache_data <= {16'b0,in_ram_data,buffered_data[7:0]};
-                                2'b11:out_icache_data <= {in_ram_data,buffered_data[23:0]};
-                            endcase
                             out_ram_ena <= `FALSE ;
-                            out_icache_ok <= `TRUE;
+                            out_ls_ok <= `TRUE;
                             status <= IDLE;
                         end
                     end
