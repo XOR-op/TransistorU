@@ -4,8 +4,8 @@ module alu(
     // from rs
     input [`OPERATION_BUS ] op, input [`DATA_WIDTH ] A, input [`DATA_WIDTH ] B,
     input [`ROB_WIDTH ] in_rob_tag, input [`DATA_WIDTH ] pc, input [`DATA_WIDTH ] imm,
-    // to rs and rob
-    output [`OPERATION_BUS ] out, output [`ROB_WIDTH ] out_rob_tag,
+    // to rs and rob and LSqueue
+    output [`DATA_WIDTH ] out, output [`ROB_WIDTH ] out_rob_tag,
     // to pc
     output jump_ena, output [`DATA_WIDTH ] jump_addr
 );

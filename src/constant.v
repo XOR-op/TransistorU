@@ -29,6 +29,7 @@
 `define REG_COUNT 32
 `define ROB_WIDTH 3:0
 `define ROB_COUNT 16
+`define OP_RANGE 6:0
 `define RS1_RANGE 19:15
 `define RS2_RANGE 24:20
 `define RD_RANGE 11:7

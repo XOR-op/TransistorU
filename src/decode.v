@@ -1,5 +1,6 @@
 `include "constant.v"
 module decode(
+    // if rob or rs is not ready, ena will be inhibited
     input clk, input ena,
     input [`INSTRUCTION_WIDTH] inst,
     input [`DATA_WIDTH ] current_pc,
@@ -18,7 +19,9 @@ module decode(
     output [`IMM_WIDTH ] imm,
     output [`OPERATION_BUS] op,
     output [`DATA_WIDTH ] operand1, output [`DATA_WIDTH ] operand2,
-    output [`ROB_WIDTH ] tag1, output [`ROB_WIDTH ] tag2, output [`DATA_WIDTH ] current_pc_out
+    output [`ROB_WIDTH ] tag1, output [`ROB_WIDTH ] tag2, output [`DATA_WIDTH ] current_pc_out,
+    // to LSqueue
+    output out_lsqueue_ena,output[`ROB_WIDTH ] out_lsqueue_rob_tag,output [`INSTRUCTION_WIDTH ] out_lsqueue_op
 );
     assign current_pc_out = current_pc;
     // may accelerate imm calculation?
@@ -31,7 +34,7 @@ module decode(
     // decode
     always @(posedge clk) begin
         if (ena) begin
-            case (inst[6:0])
+            case (inst[`OP_RANGE ])
                 `LUI_OP: begin
                 op <= `LUI;
                 imm <= U_IMM;
@@ -62,7 +65,7 @@ module decode(
                         `BLTU3 : op <= `BLTU;
                         `BGEU3 : op <= `BGEU;
                 endcase
-                {rs1, rs2, rd} <= {inst[`RS1_RANGE ], inst[`RS2_RANGE ], `ZERO_REG };
+                {rs1, rs2, rd} <= {inst[`RS1_RANGE], inst[`RS2_RANGE], `ZERO_REG };
             end
             `LOAD_OP: begin
                 imm <= I_IMM;
@@ -139,5 +142,6 @@ module decode(
     assign operand2 = in_tag2_ready ? rob_operand2:reg_operand2;
     assign tag1 = in_tag1_ready ?`ZERO_ROB :in_tag1;
     assign tag2 = in_tag2_ready ?`ZERO_ROB :in_tag2;
+
 endmodule: decode
 
