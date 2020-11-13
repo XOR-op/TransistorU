@@ -20,8 +20,9 @@ module decode(
     output [`OPERATION_BUS] op,
     output [`DATA_WIDTH ] operand1, output [`DATA_WIDTH ] operand2,
     output [`ROB_WIDTH ] tag1, output [`ROB_WIDTH ] tag2, output [`DATA_WIDTH ] current_pc_out,
+    output out_rs_has_dest,
     // to LSqueue
-    output out_lsqueue_ena,output[`ROB_WIDTH ] out_lsqueue_rob_tag,output [`INSTRUCTION_WIDTH ] out_lsqueue_op
+    output out_lsqueue_ena, output [`INSTRUCTION_WIDTH ] out_lsqueue_op
 );
     assign current_pc_out = current_pc;
     // may accelerate imm calculation?
@@ -33,7 +34,11 @@ module decode(
         J_IMM = {{12{inst31}}, inst[19:12], inst[20], inst[30:25], inst[24:21], 1'b0};
     // decode
     always @(posedge clk) begin
+        out_lsqueue_ena <= `FALSE;
+        out_lsqueue_op <= inst;
+        out_rs_has_dest <= `FALSE;
         if (ena) begin
+            out_rs_has_dest <= `TRUE;
             case (inst[`OP_RANGE ])
                 `LUI_OP: begin
                 op <= `LUI;
@@ -56,6 +61,7 @@ module decode(
                 {rs1, rs2, rd} <= {inst[`RS1_RANGE ], `ZERO_REG , inst[`RD_RANGE ]};
             end
             `BRANCH_OP: begin
+                out_rs_has_dest <= `FALSE;
                 imm <= B_IMM;
                 case (inst[14:12])
                     `BEQ3 : op <= `BEQ;
@@ -76,15 +82,18 @@ module decode(
                         `LBU3: op <= `LBU;
                         `LHU3: op <= `LHU;
                 endcase
+                out_lsqueue_ena <= `TRUE;
                 {rs1, rs2, rd} <= {inst[`RS1_RANGE ], `ZERO_REG , inst[`RD_RANGE ]};
             end
             `STORE_OP: begin
+                out_rs_has_dest <= `FALSE;
                 imm <= S_IMM;
                 case (inst[14:12])
                     `SB3 : op <= `SB;
                         `SH3 : op <= `SH3;
                         `SW3 : op <= `SH;
                 endcase
+                out_lsqueue_ena <= `TRUE;
                 {rs1, rs2, rd} <= {inst[`RS1_RANGE ], inst[`RS2_RANGE ], inst[`RD_RANGE ]};
             end
             `ARITHMETIC_OP: begin
@@ -117,6 +126,7 @@ module decode(
             end
                 default: begin
                     // avoid latch
+                    out_rs_has_dest <= `FALSE;
                     imm <= 0;
                     op <= `NOP;
                     {rs1, rs2, rd} <= {`ZERO_REG , `ZERO_REG , `ZERO_REG };

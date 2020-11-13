@@ -2,7 +2,7 @@
 module LSqueue(
     input clk, input rst,
     // input instruction
-    input in_enqueue_ena, input [`ROB_WIDTH ] in_enqueue_rob_tag, input [`OPERATION_BUS ] in_op,
+    input in_enqueue_ena, input [`ROB_WIDTH ] in_enqueue_rob_tag, input [`INSTRUCTION_WIDTH ] in_op,
     // input address and data
     input [`DATA_WIDTH ] in_address, input [`DATA_WIDTH] in_data, input [`ROB_WIDTH ] in_issue_rob_tag,
     // rob commit
@@ -15,7 +15,7 @@ module LSqueue(
     output out_mem_iswrite
 );
     reg [`ROB_WIDTH ] buffered_rob_tag [`ROB_COUNT :1];
-    reg [`OPERATION_BUS ] buffered_op [`ROB_COUNT :1];
+    reg [`INSTRUCTION_WIDTH] buffered_op [`ROB_COUNT :1];
     reg [`DATA_WIDTH ] buffered_address [`ROB_COUNT :1];
     reg [`DATA_WIDTH ] buffered_data [`ROB_COUNT :1];
     reg buffered_valid [`ROB_COUNT :1];

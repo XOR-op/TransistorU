@@ -14,6 +14,7 @@ module fetcher(
     output [`DATA_WIDTH ] loopback_pc
 );
     reg [`DATA_WIDTH ] buffered_pc;
+    reg busy;
     // i-cache
     reg [`DATA_WIDTH ] data [`ICACHE_WIDTH ];
     reg [`TAG_WIDTH ] tag [`ICACHE_WIDTH ];
@@ -38,18 +39,19 @@ module fetcher(
             valid <= 0;
             data <= 0;
             tag <= 0;
-            stat <= `FALSE;
+            busy <= `FALSE;
             loopback_pc <= assigned_pc;
         end else if (in_mem_ready) begin
             data[in_pc[`INDEX_WIDTH ]] <= in_mem_inst;
             valid[in_pc[`INDEX_WIDTH ]] <= `TRUE;
             tag[in_pc[`INDEX_WIDTH ]] <= in_pc[`TAG_WIDTH ];
-            stat <= `FALSE;
+            busy <= `FALSE;
             loopback_pc <= in_pc+4;
-        end else if (ena && !stat && !out_ok) begin
-            stat <= `TRUE;
+        end else if (ena && !busy && !out_ok) begin
+            // read from memory
+            busy <= `TRUE;
             out_mem_ena <= `TRUE;
-            out_address<=in_pc;
+            out_address <= in_pc;
         end
     end
 endmodule : fetcher

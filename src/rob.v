@@ -15,7 +15,9 @@ module ROB(input clk, input rst,
     // return to decoder
     output [`ROB_WIDTH ] back_value1, output [`ROB_WIDTH ] back_value2,
     output back_ready1, output back_ready2,
-    output [`ROB_WIDTH ] available_tag
+    output [`ROB_WIDTH ] available_tag,
+    // to LSqueue
+    output reg [`ROB_WIDTH ] just_allocated_rob_tag
 );
 
     // regs and wires
@@ -54,6 +56,7 @@ module ROB(input clk, input rst,
                 op_arr[tail] <= in_op;
                 dest_arr[tail] <= in_dest;
                 tail <= tail == `ROB_COUNT ? 1:tail+1;
+                just_allocated_rob_tag<=tail;
             end
             // update
             if (cdb_rob_tag != `ZERO_ROB) begin

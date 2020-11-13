@@ -25,7 +25,6 @@ module alu(
                     `SRL : out = A >> B;
                     `SRA : out = A >>> B;
                     `SLTU : out = (A < B);
-                // `SLT : out <= (A[31] ^ B[31]) ? A[31]:{A-B}[31];
                     `SLT : out = $signed(A) < $signed(B);
                 // imm op
                     `ADDI : out = A+imm;
@@ -36,22 +35,16 @@ module alu(
                     `SRLI: out = A >> imm;
                     `SRAI: out = A >>> imm;
                     `SLTIU : out = (A < imm);
-                // `SLTI : out <= (A[31] ^ imm[31]) ? A[31]:{A-imm}[31];
                     `SLTI : out = $signed(A) < $signed(imm);
                 // other
                     `LUI: out = {imm, 12'b0};
                     `AUIPC : out = pc+imm;
-                    `JAL : begin
+                    `JAL : out = pc+4; // jump in fetch stage
+                    `JALR: begin
                     out = pc+4;
-                end
-                `JALR: begin
-                out = pc+4;
-                jump_addr = A+imm;
-            end
-            `BEQ: begin
-                out = A == B;
-            end
-            `BNE: out = A != B;
+                    jump_addr = A+imm; end
+                `BEQ: out = A == B;
+                    `BNE: out = A != B;
                     `BLT: out = $signed(A) < $signed(B);
                     `BGE : out = $signed(A) >= $signed(B);
                     `BLTU : out = A < B;
