@@ -13,7 +13,7 @@ module pc(
     output out_clear_all
 );
     reg [`DATA_WIDTH ] pc;
-    // 2-way adaptive
+    // 2-bit saturating counter now
     reg [1:0] prediction_table [`PREDICTION_SLOT_SIZE -1:0];
     wire [`DATA_WIDTH ] J_IMM = {{12{in_inst[31]}}, in_inst[19:12], in_inst[20], in_inst[30:25], in_inst[24:21], 1'b0},
                         B_IMM = {{20{in_inst[31]}}, in_inst[7], in_inst[30:25], in_inst[11:8], 1'b0};
