@@ -2,17 +2,17 @@
 module fetcher(
     input clk, input rst, input ena,
     // to decoder
-    output out_decoder_ena,
-    output [`DATA_WIDTH ] out_inst, output [`DATA_WIDTH ] out_decoder_pc, output out_branch_taken,
+    output reg out_decoder_ena,
+    output reg [`DATA_WIDTH ] out_inst, output reg[`DATA_WIDTH ] out_decoder_pc, output reg out_branch_taken,
     // predictor
-    output out_pc_reg_ena,output [`DATA_WIDTH ] out_pc_query_taken,
+    output reg out_pc_reg_ena,output reg [`DATA_WIDTH ] out_pc_query_taken,
     input in_result_taken,
     // to memory
-    output out_mem_ena, output [`DATA_WIDTH ] out_address,
+    output reg out_mem_ena, output reg [`DATA_WIDTH ] out_address,
     // from memory
     input in_mem_ready, input [`DATA_WIDTH ] in_mem_inst,
     // from pc reg
-    input [`DATA_WIDTH ] in_pc,
+    input [`DATA_WIDTH ] in_pc
 );
     reg busy;
     // i-cache
@@ -28,14 +28,16 @@ module fetcher(
         out_branch_taken=in_result_taken;
     end
     // fetcher logic
+    integer i;
     always @(posedge clk) begin
         out_mem_ena <= `FALSE;
-        loopback_pc <= in_pc;
         out_pc_reg_ena <= `TRUE;
         if (rst) begin
-            valid <= 0;
-            data <= 0;
-            tag <= 0;
+        for(i=0;i<`ICACHE_SIZE;i=i+1)begin
+            valid[i] <= 0;
+            data[i] <= 0;
+            tag[i] <= 0;
+            end
             busy <= `FALSE;
             out_pc_reg_ena <= `FALSE;
         end else if (in_mem_ready) begin
@@ -43,7 +45,7 @@ module fetcher(
             valid[in_pc[`INDEX_WIDTH ]] <= `TRUE;
             tag[in_pc[`INDEX_WIDTH ]] <= in_pc[`TAG_WIDTH ];
             busy <= `FALSE;
-        end else if (ena && !busy && !out_ok) begin
+        end else if (ena && !busy && !out_decoder_ena) begin
             // read from memory
             busy <= `TRUE;
             out_mem_ena <= `TRUE;

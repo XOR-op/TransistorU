@@ -37,6 +37,7 @@
 `define RS_SIZE 16
 `define RAM_WIDTH 7:0
 `define ICACHE_WIDTH 255:0
+`define ICACHE_SIZE 256
 `define TAG_WIDTH 31:10
 `define INDEX_WIDTH 9:2
 `define PREDICTION_SLOT_SIZE 256

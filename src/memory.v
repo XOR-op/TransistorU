@@ -2,15 +2,15 @@
 module memory(
     input clk, input rst, output reg busy,
     // ram
-    output out_ram_ena, output out_ram_rd_wt_flag, output [`DATA_WIDTH ] out_ram_addr,
-    output [`RAM_WIDTH ] out_ram_data, input [`RAM_WIDTH ] in_ram_data,
+    output reg out_ram_ena, output reg out_ram_rd_wt_flag, output reg[`DATA_WIDTH ] out_ram_addr,
+    output reg[`RAM_WIDTH ] out_ram_data, input [`RAM_WIDTH ] in_ram_data,
     // icache
     input in_icache_ena, input [`DATA_WIDTH ] in_icache_addr,
-    output out_icache_ok, output [`DATA_WIDTH ] out_icache_data,
+    output reg out_icache_ok, output reg[`DATA_WIDTH ] out_icache_data,
     // LS
     input in_ls_ena, input in_ls_iswrite, input [`DATA_WIDTH ] in_ls_addr, input [2:0] in_ls_size,
     input [`DATA_WIDTH ] in_ls_data,
-    output [`DATA_WIDTH ] out_ls_data, output out_ls_ok,
+    output reg[`DATA_WIDTH ] out_ls_data, output reg out_ls_ok
 );
     // waiting buffer
     reg reg_fetch_ena;
@@ -25,6 +25,7 @@ module memory(
     reg [1:0] status;
     reg [`DATA_WIDTH ] buffered_addr;
     reg [`DATA_WIDTH ] buffered_data;
+    reg [1:0] where_to_stop,cur_bytes;
     always @(posedge clk) begin
         if (rst) begin
             status <= IDLE;

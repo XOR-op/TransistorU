@@ -8,11 +8,11 @@ module LSqueue(
     // rob commit
     input [`DATA_WIDTH ] in_commit_rob,
     // out to rob and rs
-    output [`DATA_WIDTH ] out_result, output [`ROB_WIDTH ] out_rob_tag,
+    output reg [`DATA_WIDTH ] out_result, output reg[`ROB_WIDTH ] out_rob_tag,
     // with memory
     input in_mem_ready, input [`DATA_WIDTH ] in_mem_read_data,
-    output out_mem_ena, output [`DATA_WIDTH ] out_mem_addr, output [`DATA_WIDTH ] out_mem_write_data,
-    output out_mem_iswrite
+    output reg out_mem_ena, output reg[`DATA_WIDTH ] out_mem_addr, output reg[`DATA_WIDTH ] out_mem_write_data,
+    output reg out_mem_iswrite
 );
     reg [`ROB_WIDTH ] buffered_rob_tag [`ROB_SIZE :1];
     reg [`INSTRUCTION_WIDTH] buffered_op [`ROB_SIZE :1];
@@ -25,6 +25,8 @@ module LSqueue(
     parameter IDLE=0, STORE=1, LOAD=2, LH=3, LB=4;
     reg [2:0] busy_stat;
     reg [`ROB_WIDTH ] pending_rob;
+    integer i;
+
     always @(posedge clk) begin
         out_mem_ena <= `FALSE;
         out_rob_tag <= `ZERO_ROB;
@@ -32,19 +34,17 @@ module LSqueue(
         if (rst) begin
             head <= 0;
             tail <= 1;
-            buffered_valid <= 0;
             busy_stat <= `FALSE;
-            committed <= 0;
         end else begin
             if (in_enqueue_ena) begin
                 buffered_rob_tag[tail] <= in_enqueue_rob_tag;
                 buffered_op[tail] <= in_op;
                 buffered_valid[tail] <= `FALSE;
-                committed <= `FALSE;
+                committed[tail] <= `FALSE;
                 tail <= tail == `ROB_SIZE ? 1:tail+1;
             end
             // broadcast
-            for (i = 1; i <= `ROB_SIZE;i++) begin
+            for (i = 1; i <= `ROB_SIZE;i=i+1) begin
                 // Only when rs1 and rs2 are both ready, instructions will be issued to ALU then CDB.
                 // So when it comes to LSqueue, it will be ready immediately.
                 if (in_issue_rob_tag == buffered_rob_tag[i]) begin
@@ -57,12 +57,12 @@ module LSqueue(
             end
             // try to issue LOAD&STORE
             if (busy_stat == IDLE) begin
-                if (head != 0 && buffered_valid[head] && (buffered_op[head][`OP_RANGE ] == `LOAD_OP || committed)) begin
+                if (head != 0 && buffered_valid[head] && (buffered_op[head][`OP_RANGE ] == `LOAD_OP || committed[head])) begin
                     out_mem_ena <= `TRUE;
                     pending_rob <= buffered_rob_tag[head];
-                    if (buffered_op[`OP_RANGE ] == `LOAD_OP) begin
+                    if (buffered_op[head][`OP_RANGE ] == `LOAD_OP) begin
                         out_mem_iswrite <= `FALSE;
-                        case (buffered_op[14:12])
+                        case (buffered_op[head][14:12])
                             3'b000: busy_stat <= LB;
                             3'b001: busy_stat <= LH;
                             default: busy_stat <= LOAD;

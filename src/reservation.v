@@ -19,7 +19,7 @@ module reservation(
     output reg [`DATA_WIDTH ] out_Vj, output reg [`DATA_WIDTH ] out_Vk, output reg [`DATA_WIDTH ] out_A,
     output reg [`ROB_WIDTH ] out_rob_tag, output reg [`DATA_WIDTH ] out_pc, output reg [`DATA_WIDTH ] out_imm,
     // return to decoder
-    output reg has_capacity
+    output has_capacity
 );
     // inner storage
     reg [`OPERATION_BUS ] op [`RS_SIZE :1];
@@ -41,7 +41,7 @@ module reservation(
     // broadcast
     generate
         genvar i;
-        for (i = 1;i <= `RS_SIZE;i++) begin : broadcast_update
+        for (i = 1;i <= `RS_SIZE;i=i+1) begin : broadcast_update
             always @(posedge clk) begin
                 if (~rst && Qj[i] == in_alu_cdb_rob_tag) begin
                     Qj[i] <= `ZERO_ROB;
@@ -79,16 +79,16 @@ module reservation(
 
     // choose op to ALU
     generate
-        genvar i;
-        for (i = 1;i <= `RS_SIZE;i++) begin : gen_ready_sig
+        for (i = 1;i <= `RS_SIZE;i=i+1) begin : gen_ready_sig
             assign ready_to_issue[i] = busy[i] &(Qj[i] == `ZERO_ROB) &(Qk[i] == `ZERO_ROB);
         end
     endgenerate
+    integer j;
     always @(*) begin
         what_to_issue = `ZERO_RS;
-        for (i = 1; i <= `RS_SIZE;i++)
-            if (ready_to_issue[i])
-                what_to_issue = i;
+        for (j = 1; j <= `RS_SIZE;j=j+1)
+            if (ready_to_issue[j])
+                what_to_issue = j;
     end
     always @(posedge clk) begin
         // issue to alu
@@ -107,7 +107,7 @@ module reservation(
     // priority encoder-like
     always @(*) begin
         free_rs_tag = `ZERO_RS;
-        for (i = 1; i <= `RS_SIZE;i++)
+        for (j = 1; j <= `RS_SIZE;j=j+1)
             if (!busy[i])
                 free_rs_tag = i;
     end
