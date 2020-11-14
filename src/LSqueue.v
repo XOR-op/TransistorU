@@ -14,12 +14,12 @@ module LSqueue(
     output out_mem_ena, output [`DATA_WIDTH ] out_mem_addr, output [`DATA_WIDTH ] out_mem_write_data,
     output out_mem_iswrite
 );
-    reg [`ROB_WIDTH ] buffered_rob_tag [`ROB_COUNT :1];
-    reg [`INSTRUCTION_WIDTH] buffered_op [`ROB_COUNT :1];
-    reg [`DATA_WIDTH ] buffered_address [`ROB_COUNT :1];
-    reg [`DATA_WIDTH ] buffered_data [`ROB_COUNT :1];
-    reg buffered_valid [`ROB_COUNT :1];
-    reg committed [`ROB_COUNT :1];
+    reg [`ROB_WIDTH ] buffered_rob_tag [`ROB_SIZE :1];
+    reg [`INSTRUCTION_WIDTH] buffered_op [`ROB_SIZE :1];
+    reg [`DATA_WIDTH ] buffered_address [`ROB_SIZE :1];
+    reg [`DATA_WIDTH ] buffered_data [`ROB_SIZE :1];
+    reg buffered_valid [`ROB_SIZE :1];
+    reg committed [`ROB_SIZE :1];
     reg [`DATA_WIDTH ] head, tail;
     // LH and LB calls for signed-extension
     parameter IDLE=0, STORE=1, LOAD=2, LH=3, LB=4;
@@ -41,10 +41,10 @@ module LSqueue(
                 buffered_op[tail] <= in_op;
                 buffered_valid[tail] <= `FALSE;
                 committed <= `FALSE;
-                tail <= tail == `ROB_COUNT ? 1:tail+1;
+                tail <= tail == `ROB_SIZE ? 1:tail+1;
             end
             // broadcast
-            for (i = 1; i <= `ROB_COUNT;i++) begin
+            for (i = 1; i <= `ROB_SIZE;i++) begin
                 // Only when rs1 and rs2 are both ready, instructions will be issued to ALU then CDB.
                 // So when it comes to LSqueue, it will be ready immediately.
                 if (in_issue_rob_tag == buffered_rob_tag[i]) begin

@@ -26,19 +26,22 @@
 `define REG_WIDTH 4:0
 `define IMM_WIDTH 31:0
 `define REG_ONEHOT_BOUND 31:0
-`define REG_COUNT 32
+`define REG_SIZE 32
 `define ROB_WIDTH 3:0
-`define ROB_COUNT 16
+`define ROB_SIZE 16
 `define OP_RANGE 6:0
 `define RS1_RANGE 19:15
 `define RS2_RANGE 24:20
 `define RD_RANGE 11:7
 `define RS_WIDTH 3:0
-`define RS_COUNT 16
+`define RS_SIZE 16
 `define RAM_WIDTH 7:0
 `define ICACHE_WIDTH 255:0
 `define TAG_WIDTH 31:10
 `define INDEX_WIDTH 9:2
+`define PREDICTION_SLOT_SIZE 256
+`define PREDICTION_INDEX_RANGE 9:2
+
 
 // constant
 `define ZERO_DATA 32'b0

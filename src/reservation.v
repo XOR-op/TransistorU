@@ -12,7 +12,8 @@ module reservation(
     input [`ROB_WIDTH ] in_rd_rob, // may from rob directly
     input in_has_rd_dest,
     // CDB broadcast
-    input [`ROB_WIDTH ] newest_data_rob_tag, input [`DATA_WIDTH ] newest_data,
+    input [`ROB_WIDTH ] in_alu_cdb_rob_tag, input [`DATA_WIDTH ] in_alu_cdb_data,
+    input [`ROB_WIDTH ] in_ls_cdb_rob_tag, input [`DATA_WIDTH ] in_ls_cdb_data,
     // pass to alu
     output reg [`OPERATION_BUS ] out_op,
     output reg [`DATA_WIDTH ] out_Vj, output reg [`DATA_WIDTH ] out_Vk, output reg [`DATA_WIDTH ] out_A,
@@ -21,34 +22,42 @@ module reservation(
     output reg has_capacity
 );
     // inner storage
-    reg [`OPERATION_BUS ] op [`RS_COUNT :1];
-    reg [`ROB_WIDTH ] Qj [`RS_COUNT :1];
-    reg [`ROB_WIDTH ] Qk [`RS_COUNT :1];
-    reg [`DATA_WIDTH ] Vj [`RS_COUNT :1];
-    reg [`DATA_WIDTH ] Vk [`RS_COUNT :1];
-    reg [`DATA_WIDTH ] A [`RS_COUNT :1];
+    reg [`OPERATION_BUS ] op [`RS_SIZE :1];
+    reg [`ROB_WIDTH ] Qj [`RS_SIZE :1];
+    reg [`ROB_WIDTH ] Qk [`RS_SIZE :1];
+    reg [`DATA_WIDTH ] Vj [`RS_SIZE :1];
+    reg [`DATA_WIDTH ] Vk [`RS_SIZE :1];
+    reg [`DATA_WIDTH ] A [`RS_SIZE :1];
     reg busy [`RS_WIDTH ];
-    reg [`ROB_WIDTH ] rob_tag [`RS_COUNT :1];
-    reg [`DATA_WIDTH ] PCs [`RS_COUNT :1];
-    reg [`DATA_WIDTH ] imms [`RS_COUNT :1];
+    reg [`ROB_WIDTH ] rob_tag [`RS_SIZE :1];
+    reg [`DATA_WIDTH ] PCs [`RS_SIZE :1];
+    reg [`DATA_WIDTH ] imms [`RS_SIZE :1];
     // control variable
     reg [`DATA_WIDTH ] size;
-    assign has_capacity = size == `RS_COUNT;
+    assign has_capacity = size == `RS_SIZE;
     reg [`RS_WIDTH ] free_rs_tag;
-    wire ready_to_issue [`RS_COUNT :1];
+    wire ready_to_issue [`RS_SIZE :1];
     reg [`RS_WIDTH ] what_to_issue;
     // broadcast
     generate
         genvar i;
-        for (i = 1;i <= `RS_COUNT;i++) begin : broadcast_update
+        for (i = 1;i <= `RS_SIZE;i++) begin : broadcast_update
             always @(posedge clk) begin
-                if (~rst && Qj[i] == newest_data_rob_tag) begin
+                if (~rst && Qj[i] == in_alu_cdb_rob_tag) begin
                     Qj[i] <= `ZERO_ROB;
-                    Vj[i] <= newest_data;
+                    Vj[i] <= in_alu_cdb_data;
                 end
-                if (~rst && Qk[i] == newest_data_rob_tag) begin
+                if (~rst && Qk[i] == in_alu_cdb_rob_tag) begin
                     Qk[i] <= `ZERO_ROB;
-                    Vk[i] <= newest_data;
+                    Vk[i] <= in_alu_cdb_data;
+                end
+                if (~rst && Qj[i] == in_ls_cdb_rob_tag) begin
+                    Qj[i] <= `ZERO_ROB;
+                    Vj[i] <= in_ls_cdb_data;
+                end
+                if (~rst && Qk[i] == in_ls_cdb_rob_tag) begin
+                    Qk[i] <= `ZERO_ROB;
+                    Vk[i] <= in_ls_cdb_data;
                 end
             end
         end : broadcast_update
@@ -71,13 +80,13 @@ module reservation(
     // choose op to ALU
     generate
         genvar i;
-        for (i = 1;i <= `RS_COUNT;i++) begin : gen_ready_sig
+        for (i = 1;i <= `RS_SIZE;i++) begin : gen_ready_sig
             assign ready_to_issue[i] = busy[i] &(Qj[i] == `ZERO_ROB) &(Qk[i] == `ZERO_ROB);
         end
     endgenerate
     always @(*) begin
         what_to_issue = `ZERO_RS;
-        for (i = 1; i <= `RS_COUNT;i++)
+        for (i = 1; i <= `RS_SIZE;i++)
             if (ready_to_issue[i])
                 what_to_issue = i;
     end
@@ -98,7 +107,7 @@ module reservation(
     // priority encoder-like
     always @(*) begin
         free_rs_tag = `ZERO_RS;
-        for (i = 1; i <= `RS_COUNT;i++)
+        for (i = 1; i <= `RS_SIZE;i++)
             if (!busy[i])
                 free_rs_tag = i;
     end

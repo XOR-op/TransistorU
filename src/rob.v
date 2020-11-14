@@ -2,98 +2,124 @@
 
 module ROB(input clk, input rst,
     // broadcast
-    input [`ROB_WIDTH ] cdb_rob_tag, input [`DATA_WIDTH ] cdb_value,
+    input [`ROB_WIDTH ] in_cdb_rob_tag, input [`DATA_WIDTH ] in_cdb_value, input in_cdb_isjump,
+    input [`ROB_WIDTH ] in_ls_cdb_rob_tag,input [`DATA_WIDTH ] in_ls_cdb_value,
     // assignment by decoder
-    input [`ROB_WIDTH ] assignment_tag,
-    input [`OPERATION_BUS ] in_op, input [`REG_WIDTH ] in_dest,
+    input [`ROB_WIDTH ] in_assignment_tag,
+    input [`DATA_WIDTH ] in_inst, input [`REG_WIDTH ] in_dest,
+    // assignment info for branch prediction
+    input [`DATA_WIDTH ] in_pc, input in_predicted_taken,
     // write to registers
-    output [`REG_WIDTH ] reg_tag, output [`DATA_WIDTH ] reg_value,
+    output [`REG_WIDTH ] out_reg_tag, output [`DATA_WIDTH ] out_reg_value,
     // write value to memory
-    output [`DATA_WIDTH ] address,
+    output [`DATA_WIDTH ] out_mem_address,
     // ROB ready from decoder
-    input [`ROB_WIDTH ] query_tag1, input [`ROB_WIDTH ] query_tag2,
+    input [`ROB_WIDTH ] in_query_tag1, input [`ROB_WIDTH ] in_query_tag2,
     // return to decoder
-    output [`ROB_WIDTH ] back_value1, output [`ROB_WIDTH ] back_value2,
-    output back_ready1, output back_ready2,
-    output [`ROB_WIDTH ] available_tag,
-    // to LSqueue
-    output reg [`ROB_WIDTH ] just_allocated_rob_tag
+    output [`ROB_WIDTH ] out_back_value1, output [`ROB_WIDTH ] out_back_value2,
+    output out_back_ready1, output out_back_ready2,
+    output [`ROB_WIDTH ] out_rob_available_tag,
+    // to LSqueue and RS
+    output [`ROB_WIDTH ] just_allocated_rob_tag,
+    // commit to LSqueue for store
+    output [`ROB_WIDTH ] out_committed_rob_tag,
+    // misbranch
+    output [`DATA_WIDTH ] out_forwarding_branch_pc,
+    output out_misbranch, output out_forwarding_taken,
+    output [`DATA_WIDTH ] out_correct_jump_addr
 );
 
-    // regs and wires
-    reg [`DATA_WIDTH ] data_arr [`ROB_COUNT :1];
-    reg ready_arr [`ROB_COUNT :1];
-    reg [`REG_WIDTH ] dest_arr [`ROB_COUNT :1];
-    reg [`OPERATION_BUS ] op_arr [`ROB_COUNT :1];
     reg [`DATA_WIDTH ] head = 0, tail = 1;
+    // standard robs
+    reg [`DATA_WIDTH ] data_arr [`ROB_SIZE :1];
+    reg ready_arr [`ROB_SIZE :1];
+    reg [`REG_WIDTH ] dest_arr [`ROB_SIZE :1];
+    reg [`DATA_WIDTH ] inst_arr [`ROB_SIZE :1];
+    // for branch prediction
+    reg [`DATA_WIDTH ] pc_arr [`ROB_SIZE :1];
+    reg predicted_taken [`ROB_SIZE :1];
+    reg jump_flag_arr [`ROB_SIZE :1];
 
-    assign available_tag = head == tail ?`ZERO_ROB :tail;
+    assign out_rob_available_tag = head == tail ?`ZERO_ROB :tail;
     // decoder read
     always @(*) begin
-        if (query_tag1 != `ZERO_ROB) begin
-            back_ready1 = ready_arr[query_tag1];
-            back_value1 = data_arr[query_tag1];
+        if (in_query_tag1 != `ZERO_ROB) begin
+            out_back_ready1 = ready_arr[in_query_tag1];
+            out_back_value1 = data_arr[in_query_tag1];
         end else begin
-            back_ready1 = `FALSE;
-            back_value1 = `ZERO_DATA;
+            out_back_ready1 = `FALSE;
+            out_back_value1 = `ZERO_DATA;
         end
-        if (query_tag2 != `ZERO_ROB) begin
-            back_ready2 = ready_arr[query_tag2];
-            back_value2 = data_arr[query_tag2];
+        if (in_query_tag2 != `ZERO_ROB) begin
+            out_back_ready2 = ready_arr[in_query_tag2];
+            out_back_value2 = data_arr[in_query_tag2];
         end else begin
-            back_ready2 = `FALSE;
-            back_value2 = `ZERO_DATA;
+            out_back_ready2 = `FALSE;
+            out_back_value2 = `ZERO_DATA;
         end
     end
     always @(posedge clk) begin
+        just_allocated_rob_tag <= `ZERO_ROB;
+        out_misbranch <= `FALSE;
+        out_correct_jump_addr <= `ZERO_DATA;
         if (rst) begin
             head <= 0;
             tail <= 1;
         end else begin
             // assignment
-            if (assignment_tag != `ZERO_ROB) begin
+            if (in_assignment_tag != `ZERO_ROB) begin
                 ready_arr[tail] <= `FALSE;
-                op_arr[tail] <= in_op;
+                inst_arr[tail] <= in_inst;
                 dest_arr[tail] <= in_dest;
-                tail <= tail == `ROB_COUNT ? 1:tail+1;
-                just_allocated_rob_tag<=tail;
+                tail <= tail == `ROB_SIZE ? 1:tail+1;
+                predicted_taken[tail] <= in_predicted_taken;
+                just_allocated_rob_tag <= tail;
             end
             // update
-            if (cdb_rob_tag != `ZERO_ROB) begin
-                data_arr[cdb_rob_tag] <= cdb_value;
-                ready_arr[cdb_rob_tag] <= `TRUE;
+            if (in_cdb_rob_tag != `ZERO_ROB) begin
+                data_arr[in_cdb_rob_tag] <= in_cdb_value;
+                ready_arr[in_cdb_rob_tag] <= `TRUE;
+                jump_flag_arr[in_cdb_rob_tag] <= in_cdb_isjump;
+            end
+            if(in_ls_cdb_rob_tag!=`ZERO_ROB )begin
+                data_arr[in_ls_cdb_rob_tag] <= in_ls_cdb_value;
+                ready_arr[in_ls_cdb_rob_tag] <= `TRUE;
             end
             // commit
             // start from null-state
-            if(head==0)begin
+            if (head == 0) begin
                 // move to work-state
-                if(tail!=1)
-                    head<=1;
+                if (tail != 1)
+                    head <= 1;
             end
-            else if(ready_arr[head])begin
+            else if (ready_arr[head]) begin
                 // work state
-                if()begin
+                if ((inst_arr[head][`OP_RANGE ]==`BRANCH_OP &&
+                    (jump_flag_arr[head] ^ predicted_taken[head]))
+                    ||(inst_arr[head][`OP_RANGE ]==`JALR_OP )) begin
                     // branch mispredicted
-
-                end else if()begin
+                    out_misbranch <= `TRUE;
+                    out_correct_jump_addr <= data_arr[head];
+                end else if (inst_arr[head][`OP_RANGE ] == `STORE_OP) begin
                     // store
-
+                    out_committed_rob_tag <= head;
                 end else begin
-                    reg_tag<=dest_arr[head];
-                    reg_value<=data_arr[head];
+                    // write to register
+                    out_reg_tag <= dest_arr[head];
+                    out_reg_value <= data_arr[head];
                 end
                 // update head and tail
-                if((head % `ROB_COUNT )+1==tail)begin
+                if ((head%`ROB_SIZE)+1 == tail) begin
                     // no existing robs
-                    head<=0;
-                    tail<=1;
+                    head <= 0;
+                    tail <= 1;
                 end else begin
-                    head<=head==`ROB_COUNT ?1:head+1;
+                    head <= head == `ROB_SIZE ? 1:head+1;
                 end
             end else begin
                 // avoid latch
-                reg_tag<=`ZERO_ROB ;
-                reg_value<=`ZERO_DATA ;
+                out_reg_tag <= `ZERO_ROB;
+                out_reg_value <= `ZERO_DATA;
             end
 
         end

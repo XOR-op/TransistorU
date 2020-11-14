@@ -12,12 +12,12 @@ module regFile(
     input [`REG_WIDTH ] set_value, input [`ROB_WIDTH ] in_rob_entry_tag,
     input [`DATA_WIDTH ] in_new_value,
 );
-    reg [`DATA_WIDTH ] datas [`REG_COUNT -1:0];
-    reg [`ROB_WIDTH ] rob_tags [`REG_COUNT -1:0];
-    reg busy [`REG_COUNT -1:0];
+    reg [`DATA_WIDTH ] datas [`REG_SIZE -1:0];
+    reg [`ROB_WIDTH ] rob_tags [`REG_SIZE -1:0];
+    reg busy [`REG_SIZE -1:0];
     generate
         genvar regi;
-        for (regi = 0;regi < `REG_COUNT;regi++) begin : genreg
+        for (regi = 0;regi < `REG_SIZE;regi++) begin : genreg
             always @(posedge clk) begin
                 if (set_value != `ZERO_REG && set_value == regi) begin
                     // set by rob
