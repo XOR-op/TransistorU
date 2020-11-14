@@ -1,5 +1,5 @@
 # TransistorU 
-A reduced RISC-V Tomasulo CPU supporting partial of rv32i ISA.
+A Tomasulo based RISC-V CPU supporting partial of rv32i ISA.
 
 <img src="https://media.52poke.com/wiki/9/96/Spr_8s_894.png">
 
