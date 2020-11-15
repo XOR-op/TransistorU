@@ -5,6 +5,7 @@ module regFile(
     input [`REG_WIDTH ] read1, input [`REG_WIDTH ] read2,
     output reg [`DATA_WIDTH ] value1, output reg [`DATA_WIDTH ] value2,
     output reg [`ROB_WIDTH ] rob_tag1, output reg [`ROB_WIDTH ] rob_tag2,
+    output reg busy1,output busy2,
     // set rd's rob_tag by decoder
     input [`REG_WIDTH ] occupied_reg1, input [`ROB_WIDTH ] occupied_rob_tag1,
     // input [`REG_WIDTH ] occupied_reg2, input [`ROB_WIDTH ] occupied_rob_tag2,
@@ -45,6 +46,8 @@ module regFile(
         value2 = datas[read2];
         rob_tag1 = rob_tags[read1];
         rob_tag2 = rob_tags[read2];
+        busy1=busy[read1];
+        busy2=busy[read2];
     end
 
 endmodule : regFile

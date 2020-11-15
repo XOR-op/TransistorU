@@ -2,8 +2,8 @@
 module fetcher(
     input clk, input rst, input ena,
     // to decoder
-    output reg out_decoder_ena,
-    output reg [`DATA_WIDTH ] out_inst, output reg [`DATA_WIDTH ] out_decoder_pc, output reg out_branch_taken,
+    output reg out_decoder_ena, output reg out_branch_taken,
+    output reg [`DATA_WIDTH ] out_inst, output reg [`DATA_WIDTH ] out_decoder_pc,
     // predictor
     output reg out_pc_reg_ena, output reg [`DATA_WIDTH ] out_pc_query_taken,
     input in_result_taken,
