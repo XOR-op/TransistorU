@@ -3,8 +3,8 @@ module regFile(
     input clk, input rst,
     // decoder read value
     input [`REG_WIDTH ] read1, input [`REG_WIDTH ] read2,
-    output reg[`DATA_WIDTH ] value1, output reg[`DATA_WIDTH ] value2,
-    output reg[`ROB_WIDTH ] rob_tag1, output reg[`ROB_WIDTH ] rob_tag2,
+    output reg [`DATA_WIDTH ] value1, output reg [`DATA_WIDTH ] value2,
+    output reg [`ROB_WIDTH ] rob_tag1, output reg [`ROB_WIDTH ] rob_tag2,
     // set rd's rob_tag by decoder
     input [`REG_WIDTH ] occupied_reg1, input [`ROB_WIDTH ] occupied_rob_tag1,
     // input [`REG_WIDTH ] occupied_reg2, input [`ROB_WIDTH ] occupied_rob_tag2,
@@ -17,7 +17,7 @@ module regFile(
     reg busy [`REG_SIZE -1:0];
     generate
         genvar regi;
-        for (regi = 0;regi < `REG_SIZE;regi=regi+1) begin : genreg
+        for (regi = 0;regi < `REG_SIZE;regi = regi+1) begin : genreg
             always @(posedge clk) begin
                 if (set_value != `ZERO_REG && set_value == regi) begin
                     // set by rob

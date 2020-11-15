@@ -8,10 +8,10 @@ module LSqueue(
     // rob commit
     input [`DATA_WIDTH ] in_commit_rob,
     // out to rob and rs
-    output reg [`DATA_WIDTH ] out_result, output reg[`ROB_WIDTH ] out_rob_tag,
+    output reg [`DATA_WIDTH ] out_result, output reg [`ROB_WIDTH ] out_rob_tag,
     // with memory
     input in_mem_ready, input [`DATA_WIDTH ] in_mem_read_data,
-    output reg out_mem_ena, output reg[`DATA_WIDTH ] out_mem_addr, output reg[`DATA_WIDTH ] out_mem_write_data,
+    output reg out_mem_ena, output reg [`DATA_WIDTH ] out_mem_addr, output reg [`DATA_WIDTH ] out_mem_write_data,
     output reg out_mem_iswrite
 );
     reg [`ROB_WIDTH ] buffered_rob_tag [`ROB_SIZE :1];
@@ -44,7 +44,7 @@ module LSqueue(
                 tail <= tail == `ROB_SIZE ? 1:tail+1;
             end
             // broadcast
-            for (i = 1; i <= `ROB_SIZE;i=i+1) begin
+            for (i = 1; i <= `ROB_SIZE;i = i+1) begin
                 // Only when rs1 and rs2 are both ready, instructions will be issued to ALU then CDB.
                 // So when it comes to LSqueue, it will be ready immediately.
                 if (in_issue_rob_tag == buffered_rob_tag[i]) begin

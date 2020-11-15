@@ -2,15 +2,15 @@
 module memory(
     input clk, input rst, output reg busy,
     // ram
-    output reg out_ram_ena, output reg out_ram_rd_wt_flag, output reg[`DATA_WIDTH ] out_ram_addr,
-    output reg[`RAM_WIDTH ] out_ram_data, input [`RAM_WIDTH ] in_ram_data,
-    // icache
-    input in_icache_ena, input [`DATA_WIDTH ] in_icache_addr,
-    output reg out_icache_ok, output reg[`DATA_WIDTH ] out_icache_data,
+    output reg out_ram_ena, output reg out_ram_rd_wt_flag, output reg [`DATA_WIDTH ] out_ram_addr,
+    output reg [`RAM_WIDTH ] out_ram_data, input [`RAM_WIDTH ] in_ram_data,
+    // fetcher
+    input in_fetcher_ena, input [`DATA_WIDTH ] in_fetcher_addr,
+    output reg out_fetcher_ok, output reg [`DATA_WIDTH ] out_fetcher_data,
     // LS
     input in_ls_ena, input in_ls_iswrite, input [`DATA_WIDTH ] in_ls_addr, input [2:0] in_ls_size,
     input [`DATA_WIDTH ] in_ls_data,
-    output reg[`DATA_WIDTH ] out_ls_data, output reg out_ls_ok
+    output reg [`DATA_WIDTH ] out_ls_data, output reg out_ls_ok
 );
     // waiting buffer
     reg reg_fetch_ena;
@@ -25,7 +25,7 @@ module memory(
     reg [1:0] status;
     reg [`DATA_WIDTH ] buffered_addr;
     reg [`DATA_WIDTH ] buffered_data;
-    reg [1:0] where_to_stop,cur_bytes;
+    reg [1:0] where_to_stop, cur_bytes;
     always @(posedge clk) begin
         if (rst) begin
             status <= IDLE;
@@ -33,9 +33,9 @@ module memory(
             reg_ls_iswrite <= `FALSE;
         end else begin
             // buffer queries
-            if (in_icache_ena) begin
+            if (in_fetcher_ena) begin
                 reg_fetch_ena <= `TRUE;
-                reg_fetch_addr = in_icache_addr;
+                reg_fetch_addr = in_fetcher_addr;
             end
             if (in_ls_ena) begin
                 reg_ls_ena <= `TRUE;
@@ -84,9 +84,9 @@ module memory(
                         out_ram_ena <= `TRUE;
                         out_ram_rd_wt_flag <= `RAM_RD;
                     end
-                end else if (in_icache_ena || reg_ls_ena) begin
-                    buffered_addr <= in_icache_ena ? in_icache_addr+1:reg_fetch_addr+1;
-                    out_ram_addr <= in_icache_ena ? in_icache_addr:reg_fetch_addr;
+                end else if (in_fetcher_ena || reg_ls_ena) begin
+                    buffered_addr <= in_fetcher_ena ? in_fetcher_addr+1:reg_fetch_addr+1;
+                    out_ram_addr <= in_fetcher_ena ? in_fetcher_addr:reg_fetch_addr;
                     where_to_stop <= 2'b11;
                     cur_bytes <= 2'b00;
                     status <= ICACHE_READ;
@@ -112,7 +112,7 @@ module memory(
                         endcase
                         if (cur_bytes == 2'b11) begin
                             // finish
-                            out_icache_ok <= `TRUE;
+                            out_fetcher_ok <= `TRUE;
                             status <= IDLE;
                             out_ram_ena <= `FALSE;
                             reg_fetch_ena <= `FALSE;

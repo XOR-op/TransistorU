@@ -3,8 +3,8 @@
 module pc(
     input clk, input rst,
     input ena,
-    // from fetch
-    input [`DATA_WIDTH ] in_last_pc, input [`INSTRUCTION_WIDTH ] in_last_inst,
+    // with fetch
+    input [`DATA_WIDTH ] in_last_pc, input [`DATA_WIDTH ] in_last_inst,
     output reg [`DATA_WIDTH ] out_next_pc,
     // from branch info forwarding
     input [`DATA_WIDTH ] in_forwarding_branch_pc, input in_misbranch, input in_forwarding_branch_taken,

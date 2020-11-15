@@ -10,6 +10,8 @@ module decode(
     input [`DATA_WIDTH ] in_operand1, input [`DATA_WIDTH ] in_operand2,
     input [`ROB_WIDTH ] in_tag1, input [`ROB_WIDTH ] in_tag2,
     input in_busy1, input in_busy2,
+    // from ROB of sequential logic
+    input [`ROB_WIDTH ] in_rob_tobe_tag,
     // to ROB query
     output [`ROB_WIDTH ] out_query_tag1, output [`ROB_WIDTH ] out_query_tag2,
     // query result from ROB
@@ -23,15 +25,11 @@ module decode(
     output [`ROB_WIDTH ] out_tag1, output [`ROB_WIDTH ] out_tag2, output [`DATA_WIDTH ] out_current_pc,
     output out_rs_has_dest,
     // to LSqueue
-    output out_lsqueue_ena, output [`INSTRUCTION_WIDTH ] out_lsqueue_op,
+    output out_lsqueue_ena, output [`INSTRUCTION_WIDTH ] out_lsqueue_op, output [`ROB_WIDTH ] out_lsqueue_rob_tag,
     // to ROB assignment
     output out_rob_assign_ena, output [`DATA_WIDTH ] out_rob_inst, output [`REG_WIDTH ] out_reg_rd,
     output [`DATA_WIDTH ] out_rob_pc, output out_predicted_taken
 );
-    assign out_current_pc = in_current_pc;
-    assign out_rob_pc=in_current_pc;
-    assign out_predicted_taken = in_predicted_taken;
-    assign out_rob_inst = in_inst;
     // may accelerate imm calculation?
     wire [`DATA_WIDTH ] I_IMM, S_IMM, U_IMM, B_IMM, J_IMM;
     assign I_IMM = {{21{in_inst[31]}}, in_inst[30:20]},
@@ -41,6 +39,11 @@ module decode(
         J_IMM = {{12{in_inst[31]}}, in_inst[19:12], in_inst[20], in_inst[30:25], in_inst[24:21], 1'b0};
     // decode
     always @(posedge clk) begin
+        out_current_pc <= in_current_pc;
+        out_rob_pc <= in_current_pc;
+        out_predicted_taken <= in_predicted_taken;
+        out_rob_inst <= in_inst;
+        out_lsqueue_rob_tag <= in_rob_tobe_tag;
         out_lsqueue_ena <= `FALSE;
         out_lsqueue_op <= in_inst;
         out_rs_has_dest <= `FALSE;

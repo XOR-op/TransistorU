@@ -2,8 +2,9 @@
 
 module ROB(input clk, input rst,
     // broadcast
-    input [`ROB_WIDTH ] in_cdb_rob_tag, input [`DATA_WIDTH ] in_cdb_value, input in_cdb_isjump,
-    input [`ROB_WIDTH ] in_ls_cdb_rob_tag,input [`DATA_WIDTH ] in_ls_cdb_value,
+    input [`ROB_WIDTH ] in_cdb_rob_tag, input [`DATA_WIDTH ] in_cdb_value,
+    input in_cdb_isjump, input [`DATA_WIDTH ] in_cdb_jump_addr,
+    input [`ROB_WIDTH ] in_ls_cdb_rob_tag, input [`DATA_WIDTH ] in_ls_cdb_value,
     // assignment by decoder
     input [`ROB_WIDTH ] in_assignment_tag,
     input [`DATA_WIDTH ] in_inst, input [`REG_WIDTH ] in_dest,
@@ -16,11 +17,9 @@ module ROB(input clk, input rst,
     // ROB ready from decoder
     input [`ROB_WIDTH ] in_query_tag1, input [`ROB_WIDTH ] in_query_tag2,
     // return to decoder
-    output [`ROB_WIDTH ] out_back_value1, output [`ROB_WIDTH ] out_back_value2,
+    output [`DATA_WIDTH  ] out_back_value1, output [`DATA_WIDTH ] out_back_value2,
     output out_back_ready1, output out_back_ready2,
     output [`ROB_WIDTH ] out_rob_available_tag,
-    // to LSqueue and RS
-    output [`ROB_WIDTH ] just_allocated_rob_tag,
     // commit to LSqueue for store
     output [`ROB_WIDTH ] out_committed_rob_tag,
     // misbranch
@@ -39,6 +38,7 @@ module ROB(input clk, input rst,
     reg [`DATA_WIDTH ] pc_arr [`ROB_SIZE :1];
     reg predicted_taken [`ROB_SIZE :1];
     reg jump_flag_arr [`ROB_SIZE :1];
+    reg [`DATA_WIDTH ] jump_addr_arr [`ROB_SIZE :1];
 
     assign out_rob_available_tag = head == tail ?`ZERO_ROB :tail;
     // decoder read
@@ -59,7 +59,6 @@ module ROB(input clk, input rst,
         end
     end
     always @(posedge clk) begin
-        just_allocated_rob_tag <= `ZERO_ROB;
         out_misbranch <= `FALSE;
         out_correct_jump_addr <= `ZERO_DATA;
         if (rst) begin
@@ -73,7 +72,6 @@ module ROB(input clk, input rst,
                 dest_arr[tail] <= in_dest;
                 tail <= tail == `ROB_SIZE ? 1:tail+1;
                 predicted_taken[tail] <= in_predicted_taken;
-                just_allocated_rob_tag <= tail;
             end
             // update
             if (in_cdb_rob_tag != `ZERO_ROB) begin
@@ -81,7 +79,7 @@ module ROB(input clk, input rst,
                 ready_arr[in_cdb_rob_tag] <= `TRUE;
                 jump_flag_arr[in_cdb_rob_tag] <= in_cdb_isjump;
             end
-            if(in_ls_cdb_rob_tag!=`ZERO_ROB )begin
+            if (in_ls_cdb_rob_tag != `ZERO_ROB) begin
                 data_arr[in_ls_cdb_rob_tag] <= in_ls_cdb_value;
                 ready_arr[in_ls_cdb_rob_tag] <= `TRUE;
             end
@@ -94,12 +92,15 @@ module ROB(input clk, input rst,
             end
             else if (ready_arr[head]) begin
                 // work state
-                if ((inst_arr[head][`OP_RANGE ]==`BRANCH_OP &&
-                    (jump_flag_arr[head] ^ predicted_taken[head]))
-                    ||(inst_arr[head][`OP_RANGE ]==`JALR_OP )) begin
+                if (inst_arr[head][`OP_RANGE ] == `BRANCH_OP &&
+                    (jump_flag_arr[head] ^ predicted_taken[head])) begin
                     // branch mispredicted
                     out_misbranch <= `TRUE;
                     out_correct_jump_addr <= data_arr[head];
+                end else if (inst_arr[head][`OP_RANGE ] == `JALR_OP) begin
+                    out_misbranch <= `TRUE;
+                    out_correct_jump_addr <= data_arr[head];
+
                 end else if (inst_arr[head][`OP_RANGE ] == `STORE_OP) begin
                     // store
                     out_committed_rob_tag <= head;

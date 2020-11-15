@@ -3,9 +3,9 @@ module fetcher(
     input clk, input rst, input ena,
     // to decoder
     output reg out_decoder_ena,
-    output reg [`DATA_WIDTH ] out_inst, output reg[`DATA_WIDTH ] out_decoder_pc, output reg out_branch_taken,
+    output reg [`DATA_WIDTH ] out_inst, output reg [`DATA_WIDTH ] out_decoder_pc, output reg out_branch_taken,
     // predictor
-    output reg out_pc_reg_ena,output reg [`DATA_WIDTH ] out_pc_query_taken,
+    output reg out_pc_reg_ena, output reg [`DATA_WIDTH ] out_pc_query_taken,
     input in_result_taken,
     // to memory
     output reg out_mem_ena, output reg [`DATA_WIDTH ] out_address,
@@ -25,7 +25,7 @@ module fetcher(
         out_decoder_ena = valid[in_pc[`INDEX_WIDTH ]] && tag[in_pc[`INDEX_WIDTH ]] == in_pc[`TAG_WIDTH ];
         out_inst = data[in_pc[`INDEX_WIDTH ]];
         out_decoder_pc = in_pc;
-        out_branch_taken=in_result_taken;
+        out_branch_taken = in_result_taken;
     end
     // fetcher logic
     integer i;
@@ -33,10 +33,10 @@ module fetcher(
         out_mem_ena <= `FALSE;
         out_pc_reg_ena <= `TRUE;
         if (rst) begin
-        for(i=0;i<`ICACHE_SIZE;i=i+1)begin
-            valid[i] <= 0;
-            data[i] <= 0;
-            tag[i] <= 0;
+            for (i = 0; i < `ICACHE_SIZE;i = i+1) begin
+                valid[i] <= 0;
+                data[i] <= 0;
+                tag[i] <= 0;
             end
             busy <= `FALSE;
             out_pc_reg_ena <= `FALSE;
