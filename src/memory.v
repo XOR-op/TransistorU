@@ -1,8 +1,9 @@
 `include "constant.v"
 module memory(
-    input clk, input rst, output reg busy,
+    input clk, input rst,
     // ram
-    output reg out_ram_ena, output reg out_ram_rd_wt_flag, output reg [`DATA_WIDTH ] out_ram_addr,
+    output reg out_ram_ena, output reg out_ram_rd_wt_flag,
+    output reg [`DATA_WIDTH ] out_ram_addr,
     output reg [`RAM_WIDTH ] out_ram_data, input [`RAM_WIDTH ] in_ram_data,
     // fetcher
     input in_fetcher_ena, input [`DATA_WIDTH ] in_fetcher_addr,
@@ -30,7 +31,7 @@ module memory(
         if (rst) begin
             status <= IDLE;
             reg_fetch_ena <= `FALSE;
-            reg_ls_iswrite <= `FALSE;
+            reg_ls_ena <= `FALSE;
         end else begin
             // buffer queries
             if (in_fetcher_ena) begin

@@ -7,10 +7,9 @@ module regFile(
     output reg [`ROB_WIDTH ] rob_tag1, output reg [`ROB_WIDTH ] rob_tag2,
     output reg busy1,output busy2,
     // set rd's rob_tag by decoder
-    input [`REG_WIDTH ] occupied_reg1, input [`ROB_WIDTH ] occupied_rob_tag1,
-    // input [`REG_WIDTH ] occupied_reg2, input [`ROB_WIDTH ] occupied_rob_tag2,
+    input in_occupy_ena,input [`REG_WIDTH ] in_occupied_reg, input [`ROB_WIDTH ] in_occupied_rob_tag,
     // set value by rob
-    input [`REG_WIDTH ] set_value, input [`ROB_WIDTH ] in_rob_entry_tag,
+    input [`REG_WIDTH ] in_rob_reg_index, input [`ROB_WIDTH ] in_rob_entry_tag,
     input [`DATA_WIDTH ] in_new_value
 );
     reg [`DATA_WIDTH ] datas [`REG_SIZE -1:0];
@@ -18,25 +17,22 @@ module regFile(
     reg busy [`REG_SIZE -1:0];
     generate
         genvar regi;
-        for (regi = 0;regi < `REG_SIZE;regi = regi+1) begin : genreg
+        // reg[0] is always 0
+        for (regi = 1;regi < `REG_SIZE;regi = regi+1) begin : genreg
             always @(posedge clk) begin
-                if (set_value != `ZERO_REG && set_value == regi) begin
+                if (in_rob_reg_index == regi) begin
                     // set by rob
                     datas[regi] <= in_new_value;
                     if (in_rob_entry_tag == rob_tags[regi]) begin
                         // not busy
                         rob_tags[regi] <= `ZERO_ROB;
-                        busy[regi] <= `ZERO_ROB;
+                        busy[regi] <= `FALSE ;
                     end
                 end
-                if (occupied_reg1 != `ZERO_REG && occupied_reg1 == regi) begin
-                    rob_tags[regi] <= occupied_rob_tag1;
+                if (in_occupied_reg == regi) begin
+                    rob_tags[regi] <= in_occupied_rob_tag;
                     busy[regi] <= `TRUE;
                 end
-                // if (occupied_reg2 != `ZERO_REG && occupied_reg2 == regi) begin
-                //     rob_tags[regi] <= occupied_rob_tag2;
-                //     busy[regi] <= `TRUE;
-                // end
             end
         end
     endgenerate

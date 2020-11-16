@@ -1,6 +1,7 @@
 `include "constant.v"
 
-module ROB(input clk, input rst,
+module ROB(
+    input clk, input rst,
     // broadcast
     input [`ROB_WIDTH ] in_cdb_rob_tag, input [`DATA_WIDTH ] in_cdb_value,
     input in_cdb_isjump, input [`DATA_WIDTH ] in_cdb_jump_addr,
@@ -11,7 +12,8 @@ module ROB(input clk, input rst,
     // assignment info for branch prediction
     input in_predicted_taken,
     // write to registers
-    output [`REG_WIDTH ] out_reg_tag, output [`DATA_WIDTH ] out_reg_value,
+    output [`REG_WIDTH ] out_reg_reg,output [`ROB_WIDTH ] out_reg_rob,
+    output [`DATA_WIDTH ] out_reg_value,
     // write value to memory
     output [`DATA_WIDTH ] out_mem_address,
     // ROB ready from decoder
@@ -106,14 +108,16 @@ module ROB(input clk, input rst,
                     out_forwarding_ena <= `TRUE;
                     out_misbranch <= `TRUE;
                     out_correct_jump_addr <= jump_addr_arr[head];
-                    out_reg_tag <= dest_arr[head];
+                    out_reg_reg <= dest_arr[head];
+                    out_reg_rob<=head;
                     out_reg_value <= data_arr[head];
                 end else if (inst_arr[head][`OP_RANGE ] == `STORE_OP) begin
                     // store
                     out_committed_rob_tag <= head;
                 end else begin
                     // write to register
-                    out_reg_tag <= dest_arr[head];
+                    out_reg_reg <= dest_arr[head];
+                    out_reg_rob<=head;
                     out_reg_value <= data_arr[head];
                 end
                 // update head and tail
@@ -126,7 +130,7 @@ module ROB(input clk, input rst,
                 end
             end else begin
                 // avoid latch
-                out_reg_tag <= `ZERO_ROB;
+                out_reg_reg <= `ZERO_ROB;
                 out_reg_value <= `ZERO_DATA;
             end
 

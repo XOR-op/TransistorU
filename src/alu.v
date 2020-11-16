@@ -2,15 +2,19 @@
 module alu(
     input clk, input ena,
     // from rs
-    input [`OPERATION_BUS ] op, input [`DATA_WIDTH ] A, input [`DATA_WIDTH ] B,
-    input [`ROB_WIDTH ] in_rob_tag, input [`DATA_WIDTH ] pc, input [`DATA_WIDTH ] imm,
+    input [`OPERATION_BUS ] op, input [`ROB_WIDTH ] in_rob_tag,
+    input [`DATA_WIDTH ] pc,
+    input [`DATA_WIDTH ] A, input [`DATA_WIDTH ] B,
+    input [`DATA_WIDTH ] imm,
     // to rs and rob and LSqueue
     output [`DATA_WIDTH ] out, output [`ROB_WIDTH ] out_rob_tag,
+    output [`DATA_WIDTH ] out_ls_data,
     // to rob for jump
     output jump_ena, output [`DATA_WIDTH ] jump_addr
 );
     // combinational logic
     assign out_rob_tag = in_rob_tag;
+    assign out_ls_data = B;
     always @(*) begin
         jump_ena = `FALSE;
         if (ena) begin
@@ -62,6 +66,14 @@ module alu(
             `BGEU: begin out = A >= B;
                 jump_addr = pc+out ? imm:4;
                 jump_ena = out; end
+            `LW: begin out=A+imm; end
+            `LHU: begin out=A+imm; end
+            `LH: begin out=A+imm; end
+            `LBU: begin out=A+imm; end
+            `LB: begin out=A+imm; end
+            `SW: begin out=A+imm; end
+            `SH: begin out=A+imm; end
+            `SB: begin out=A+imm; end
                 default: begin
                     out = `ZERO_DATA; end
             endcase

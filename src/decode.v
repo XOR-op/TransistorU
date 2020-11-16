@@ -23,14 +23,14 @@ module decode(
     output [`OPERATION_BUS] out_rs_op,
     output [`DATA_WIDTH ] out_operand1, output [`DATA_WIDTH ] out_operand2,
     output [`ROB_WIDTH ] out_tag1, output [`ROB_WIDTH ] out_tag2, output [`DATA_WIDTH ] out_current_pc,
-    output out_rs_has_dest,
+    // to RS and regfile
+    output out_has_dest,
     // to LSqueue
     output out_lsqueue_ena, output [`INSTRUCTION_WIDTH ] out_lsqueue_op, output [`ROB_WIDTH ] out_rd_rob_tag,
     // to ROB assignment
     output out_rob_assign_ena, output [`DATA_WIDTH ] out_rob_inst, output [`REG_WIDTH ] out_reg_rd,
     output out_predicted_taken
 );
-    // may accelerate imm calculation?
     wire [`DATA_WIDTH ] I_IMM, S_IMM, U_IMM, B_IMM, J_IMM;
     assign I_IMM = {{21{in_inst[31]}}, in_inst[30:20]},
         S_IMM = {{21{in_inst[31]}}, in_inst[30:25], in_inst[11:7]},
@@ -46,13 +46,13 @@ module decode(
         out_rd_rob_tag <= in_rob_tobe_tag;
         out_lsqueue_ena <= `FALSE;
         out_lsqueue_op <= in_inst;
-        out_rs_has_dest <= `FALSE;
+        out_has_dest <= `FALSE;
         out_rob_assign_ena <= `FALSE;
         out_rs_ena <= `FALSE;
         if (ena) begin
             out_rob_assign_ena <= `TRUE;
             out_rs_ena <= `TRUE;
-            out_rs_has_dest <= `TRUE;
+            out_has_dest <= `TRUE;
             case (in_inst[`OP_RANGE ])
                 `LUI_OP: begin
                 out_rs_op <= `LUI;
@@ -75,7 +75,7 @@ module decode(
                 {regi1, regi2, out_reg_rd} <= {in_inst[`RS1_RANGE ], `ZERO_REG , in_inst[`RD_RANGE ]};
             end
             `BRANCH_OP: begin
-                out_rs_has_dest <= `FALSE;
+                out_has_dest <= `FALSE;
                 out_rs_imm <= B_IMM;
                 case (in_inst[14:12])
                     `BEQ3 : out_rs_op <= `BEQ;
@@ -100,7 +100,7 @@ module decode(
                 {regi1, regi2, out_reg_rd} <= {in_inst[`RS1_RANGE ], `ZERO_REG , in_inst[`RD_RANGE ]};
             end
             `STORE_OP: begin
-                out_rs_has_dest <= `FALSE;
+                out_has_dest <= `FALSE;
                 out_rs_imm <= S_IMM;
                 case (in_inst[14:12])
                     `SB3 : out_rs_op <= `SB;
@@ -140,7 +140,7 @@ module decode(
             end
                 default: begin
                     // avoid latch
-                    out_rs_has_dest <= `FALSE;
+                    out_has_dest <= `FALSE;
                     out_rs_imm <= 0;
                     out_rs_op <= `NOP;
                     {regi1, regi2, out_reg_rd} <= {`ZERO_REG , `ZERO_REG , `ZERO_REG };

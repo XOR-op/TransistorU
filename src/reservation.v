@@ -17,7 +17,8 @@ module reservation(
     // pass to alu
     output reg [`OPERATION_BUS ] out_op,
     output reg [`DATA_WIDTH ] out_Vj, output reg [`DATA_WIDTH ] out_Vk,
-    output reg [`ROB_WIDTH ] out_rob_tag, output reg [`DATA_WIDTH ] out_pc, output reg [`DATA_WIDTH ] out_imm,
+    output reg [`ROB_WIDTH ] out_rob_tag, output reg [`DATA_WIDTH ] out_pc,
+    output reg [`DATA_WIDTH ] out_imm,
     // return to decoder
     output has_capacity
 );
