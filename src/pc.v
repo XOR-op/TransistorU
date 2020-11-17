@@ -5,18 +5,18 @@ module pc(
     input in_fetcher_ena,
     // with fetch
     input [`DATA_WIDTH ] in_last_pc, input [`DATA_WIDTH ] in_last_inst,
-    output reg [`DATA_WIDTH ] out_next_pc, output out_next_taken,
+    output reg [`DATA_WIDTH ] out_next_pc, output reg out_next_taken,
     // from branch info forwarding
     input in_misbranch, input in_forwarding_branch_taken,
     input [`DATA_WIDTH ] in_forwarding_branch_pc, input [`DATA_WIDTH ] in_forwarding_correct_address,
     // reset all components for misbranch
-    output out_clear_all
+    output reg out_clear_all
 );
     reg [`DATA_WIDTH ] pc;
     // 2-bit saturating counter now
     reg [1:0] prediction_table [`PREDICTION_SLOT_SIZE -1:0];
-    wire [`DATA_WIDTH ] J_IMM = {{12{in_inst[31]}}, in_inst[19:12], in_inst[20], in_inst[30:25], in_inst[24:21], 1'b0},
-                        B_IMM = {{20{in_inst[31]}}, in_inst[7], in_inst[30:25], in_inst[11:8], 1'b0};
+    wire [`DATA_WIDTH ] J_IMM = {{12{in_last_inst[31]}}, in_last_inst[19:12], in_last_inst[20], in_last_inst[30:25], in_last_inst[24:21], 1'b0},
+                        B_IMM = {{20{in_last_inst[31]}}, in_last_inst[7], in_last_inst[30:25], in_last_inst[11:8], 1'b0};
     always @(*) begin
         out_clear_all = in_misbranch;
         out_next_taken = prediction_table[in_last_pc[`PREDICTION_INDEX_RANGE ]] [1];

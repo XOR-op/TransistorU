@@ -9,57 +9,48 @@ module ROB(
     // assignment by decoder
     input [`ROB_WIDTH ] in_assignment_tag,
     input [`DATA_WIDTH ] in_inst, input [`REG_WIDTH ] in_dest,
+    input [`DATA_WIDTH ] in_pc,
     // assignment info for branch prediction
     input in_predicted_taken,
     // write to registers
-    output [`REG_WIDTH ] out_reg_reg, output [`ROB_WIDTH ] out_reg_rob,
-    output [`DATA_WIDTH ] out_reg_value,
+    output reg [`REG_WIDTH ] out_reg_reg, output reg [`ROB_WIDTH ] out_reg_rob,
+    output reg [`DATA_WIDTH ] out_reg_value,
     // write value to memory
     output [`DATA_WIDTH ] out_mem_address,
     // ROB ready from decoder
     input [`ROB_WIDTH ] in_query_tag1, input [`ROB_WIDTH ] in_query_tag2,
     // return to decoder
-    output [`DATA_WIDTH ] out_back_value1, output [`DATA_WIDTH ] out_back_value2,
-    output out_back_ready1, output out_back_ready2,
+    output reg [`DATA_WIDTH ] out_back_value1, output reg [`DATA_WIDTH ] out_back_value2,
+    output reg out_back_ready1, output reg out_back_ready2,
     output [`ROB_WIDTH ] out_rob_available_tag,
     // commit to LSqueue for store
-    output [`ROB_WIDTH ] out_committed_rob_tag,
+    output reg [`ROB_WIDTH ] out_committed_rob_tag,
     // misbranch
-    output out_forwarding_ena,
-    output [`DATA_WIDTH ] out_forwarding_branch_pc,
-    output out_misbranch, output out_forwarding_taken,
-    output [`DATA_WIDTH ] out_correct_jump_addr
+    output reg out_forwarding_ena,
+    output reg [`DATA_WIDTH ] out_forwarding_branch_pc,
+    output reg out_misbranch, output reg out_forwarding_taken,
+    output reg [`DATA_WIDTH ] out_correct_jump_addr
 );
 
     reg [`DATA_WIDTH ] head = 0, tail = 1;
     // standard robs
-    reg [`DATA_WIDTH ] data_arr [`ROB_SIZE :1];
-    reg ready_arr [`ROB_SIZE :1];
-    reg [`REG_WIDTH ] dest_arr [`ROB_SIZE :1];
-    reg [`DATA_WIDTH ] inst_arr [`ROB_SIZE :1];
+    reg [`DATA_WIDTH ] data_arr [`ROB_SIZE :0];
+    reg ready_arr [`ROB_SIZE :0];
+    reg [`REG_WIDTH ] dest_arr [`ROB_SIZE :0];
+    reg [`DATA_WIDTH ] inst_arr [`ROB_SIZE :0];
     // for branch prediction
-    reg [`DATA_WIDTH ] pc_arr [`ROB_SIZE :1];
-    reg predicted_taken [`ROB_SIZE :1];
-    reg jump_flag_arr [`ROB_SIZE :1];
-    reg [`DATA_WIDTH ] jump_addr_arr [`ROB_SIZE :1];
+    reg [`DATA_WIDTH ] pc_arr [`ROB_SIZE :0];
+    reg predicted_taken [`ROB_SIZE :0];
+    reg jump_flag_arr [`ROB_SIZE :0];
+    reg [`DATA_WIDTH ] jump_addr_arr [`ROB_SIZE :0];
 
     assign out_rob_available_tag = head == tail ?`ZERO_ROB :tail;
     // decoder read
     always @(*) begin
-        if (in_query_tag1 != `ZERO_ROB) begin
-            out_back_ready1 = ready_arr[in_query_tag1];
-            out_back_value1 = data_arr[in_query_tag1];
-        end else begin
-            out_back_ready1 = `FALSE;
-            out_back_value1 = `ZERO_DATA;
-        end
-        if (in_query_tag2 != `ZERO_ROB) begin
-            out_back_ready2 = ready_arr[in_query_tag2];
-            out_back_value2 = data_arr[in_query_tag2];
-        end else begin
-            out_back_ready2 = `FALSE;
-            out_back_value2 = `ZERO_DATA;
-        end
+        out_back_ready1 = ready_arr[in_query_tag1];
+        out_back_value1 = data_arr[in_query_tag1];
+        out_back_ready2 = ready_arr[in_query_tag2];
+        out_back_value2 = data_arr[in_query_tag2];
     end
     always @(posedge clk) begin
         out_misbranch <= `FALSE;
@@ -68,12 +59,15 @@ module ROB(
         if (rst) begin
             head <= 0;
             tail <= 1;
+            ready_arr[`ZERO_ROB ] <= `FALSE;
+            data_arr[`ZERO_ROB ] <= `ZERO_DATA;
         end else if (ena) begin
             // assignment
             if (in_assignment_tag != `ZERO_ROB) begin
                 ready_arr[tail] <= `FALSE;
                 inst_arr[tail] <= in_inst;
                 dest_arr[tail] <= in_dest;
+                pc_arr[tail] <= in_pc;
                 tail <= tail == `ROB_SIZE ? 1:tail+1;
                 predicted_taken[tail] <= in_predicted_taken;
             end

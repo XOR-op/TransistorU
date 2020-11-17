@@ -109,8 +109,8 @@ module reservation(
     always @(*) begin
         free_rs_tag = `ZERO_RS;
         for (j = 1; j <= `RS_SIZE;j = j+1)
-            if (!busy[i])
-                free_rs_tag = i;
+            if (!busy[j])
+                free_rs_tag = j;
     end
 endmodule : reservation
 

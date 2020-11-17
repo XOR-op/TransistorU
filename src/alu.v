@@ -7,15 +7,15 @@ module alu(
     input [`DATA_WIDTH ] A, input [`DATA_WIDTH ] B,
     input [`DATA_WIDTH ] imm,
     // to rs and rob and LSqueue
-    output [`DATA_WIDTH ] out, output [`ROB_WIDTH ] out_rob_tag,
-    output [`DATA_WIDTH ] out_ls_data,
+    output reg [`DATA_WIDTH ] out, output reg [`ROB_WIDTH ] out_rob_tag,
+    output reg [`DATA_WIDTH ] out_ls_data,
     // to rob for jump
-    output jump_ena, output [`DATA_WIDTH ] jump_addr
+    output reg jump_ena, output reg[`DATA_WIDTH ] jump_addr
 );
     // combinational logic
-    assign out_rob_tag = in_rob_tag;
-    assign out_ls_data = B;
     always @(*) begin
+        out_ls_data = B;
+        out_rob_tag = in_rob_tag;
         jump_ena = `FALSE;
         case (op)
             // a b op

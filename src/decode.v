@@ -5,7 +5,7 @@ module decode(
     input [`INSTRUCTION_WIDTH] in_inst,
     input [`DATA_WIDTH ] in_current_pc, input in_predicted_taken,
     // to regfile
-    output [`REG_WIDTH ] regi1, output [`REG_WIDTH ] regi2,
+    output reg [`REG_WIDTH ] regi1, output reg [`REG_WIDTH ] regi2,
     // from regfile
     input [`DATA_WIDTH ] in_operand1, input [`DATA_WIDTH ] in_operand2,
     input [`ROB_WIDTH ] in_tag1, input [`ROB_WIDTH ] in_tag2,
@@ -13,23 +13,24 @@ module decode(
     // from ROB of sequential logic than pass to next
     input [`ROB_WIDTH ] in_rob_tobe_tag,
     // to ROB query
-    output [`ROB_WIDTH ] out_query_tag1, output [`ROB_WIDTH ] out_query_tag2,
+    output reg[`ROB_WIDTH ] out_query_tag1, output reg[`ROB_WIDTH ] out_query_tag2,
     // query result from ROB
     input in_query_tag1_ready, input in_query_tag2_ready,
     input [`DATA_WIDTH ] in_query_ready_value1, input [`DATA_WIDTH ] in_query_ready_value2,
     // to RS
-    output out_rs_ena,
-    output [`IMM_WIDTH ] out_rs_imm,
-    output [`OPERATION_BUS] out_rs_op,
+    output reg out_rs_ena,
+    output reg [`IMM_WIDTH ] out_rs_imm,
+    output reg [`OPERATION_BUS] out_rs_op,
     output [`DATA_WIDTH ] out_operand1, output [`DATA_WIDTH ] out_operand2,
-    output [`ROB_WIDTH ] out_tag1, output [`ROB_WIDTH ] out_tag2, output [`DATA_WIDTH ] out_current_pc,
+    output [`ROB_WIDTH ] out_tag1, output [`ROB_WIDTH ] out_tag2, output reg [`DATA_WIDTH ] out_current_pc,
     // to RS and regfile
-    output out_has_dest,
+    output reg out_has_dest,
     // to LSqueue
-    output out_lsqueue_ena, output [`INSTRUCTION_WIDTH ] out_lsqueue_op, output [`ROB_WIDTH ] out_rd_rob_tag,
+    output reg out_lsqueue_ena, output reg [`INSTRUCTION_WIDTH ] out_lsqueue_op,
+    output reg[`ROB_WIDTH ] out_rd_rob_tag, output reg [`DATA_WIDTH ] out_rob_pc,
     // to ROB assignment
-    output out_rob_assign_ena, output [`DATA_WIDTH ] out_rob_inst, output [`REG_WIDTH ] out_reg_rd,
-    output out_predicted_taken
+    output reg out_rob_assign_ena, output reg [`DATA_WIDTH ] out_rob_inst, output reg [`REG_WIDTH ] out_reg_rd,
+    output reg out_predicted_taken
 );
     wire [`DATA_WIDTH ] I_IMM, S_IMM, U_IMM, B_IMM, J_IMM;
     assign I_IMM = {{21{in_inst[31]}}, in_inst[30:20]},
@@ -40,7 +41,6 @@ module decode(
     // decode
     always @(posedge clk) begin
         out_current_pc <= in_current_pc;
-        out_rob_pc <= in_current_pc;
         out_predicted_taken <= in_predicted_taken;
         out_rob_inst <= in_inst;
         out_rd_rob_tag <= in_rob_tobe_tag;

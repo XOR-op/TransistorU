@@ -52,7 +52,7 @@ module cpu(
     wire decode_rs_ena;
     wire [`IMM_WIDTH ] decode_rs_imm, decode_out_has_dest;
     wire [`OPERATION_BUS ] decode_rs_op;
-    wire [`DATA_WIDTH ] decode_rs_operand1, decode_rs_operand2, decode_rs_current_pc;
+    wire [`DATA_WIDTH ] decode_rs_operand1, decode_rs_operand2, decode_out_current_pc;
     wire [`ROB_WIDTH ] decode_rs_tag1, decode_rs_tag2;
     wire decode_ls_ena;
     wire [`DATA_WIDTH ] decode_ls_op;
@@ -147,10 +147,10 @@ module cpu(
         .out_rs_imm(decode_rs_imm),
         .out_rs_op(decode_rs_op),
         .out_operand1(decode_rs_operand1), .out_operand2(decode_rs_operand2),
-        .out_tag1(decode_rs_tag1), .out_tag2(decode_rs_tag2), .out_current_pc(decode_rs_current_pc),
+        .out_tag1(decode_rs_tag1), .out_tag2(decode_rs_tag2), .out_current_pc(decode_out_current_pc),
         .out_has_dest(decode_out_has_dest),
 
-        .out_lsqueue_ena(decode_ls_ena), .out_lsqueue_op(decode_ls_op), .out_rd_rob_tag(decode_out_rob), .out_rob_pc(decode_rs_current_pc),
+        .out_lsqueue_ena(decode_ls_ena), .out_lsqueue_op(decode_ls_op), .out_rd_rob_tag(decode_out_rob), .out_rob_pc(decode_out_current_pc),
 
         .out_rob_assign_ena(decode_rob_assign_ena), .out_rob_inst(decode_rob_inst), .out_reg_rd(decode_out_reg_rd),
         .out_predicted_taken(decode_rob_taken)
@@ -162,7 +162,7 @@ module cpu(
         .assignment_ena(decode_rs_ena), .in_imm(decode_rs_imm),
         .in_op(decode_rs_op), .in_Qj(decode_rs_tag1), .in_Qk(decode_rs_tag2),
         .in_Vj(decode_rs_operand1), .in_Vk(decode_rs_operand2),
-        .in_pc(decode_rs_current_pc), .in_rd_rob(decode_out_rob),
+        .in_pc(decode_out_current_pc), .in_rd_rob(decode_out_rob),
         .in_has_rd_dest(decode_out_has_dest),
 
         .in_alu_cdb_rob_tag(alu_cdb_rob_tag), .in_alu_cdb_data(alu_cdb_out),
