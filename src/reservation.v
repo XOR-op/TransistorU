@@ -44,19 +44,19 @@ module reservation(
         genvar i;
         for (i = 0;i <= `RS_SIZE;i = i+1) begin : broadcast_update
             always @(posedge clk) begin
-                if (~rst && Qj[i] == in_alu_cdb_rob_tag) begin
+                if (~rst && ena && Qj[i] == in_alu_cdb_rob_tag) begin
                     Qj[i] <= `ZERO_ROB;
                     Vj[i] <= in_alu_cdb_data;
                 end
-                if (~rst && Qk[i] == in_alu_cdb_rob_tag) begin
+                if (~rst && ena && Qk[i] == in_alu_cdb_rob_tag) begin
                     Qk[i] <= `ZERO_ROB;
                     Vk[i] <= in_alu_cdb_data;
                 end
-                if (~rst && Qj[i] == in_ls_cdb_rob_tag) begin
+                if (~rst && ena && Qj[i] == in_ls_cdb_rob_tag) begin
                     Qj[i] <= `ZERO_ROB;
                     Vj[i] <= in_ls_cdb_data;
                 end
-                if (~rst && Qk[i] == in_ls_cdb_rob_tag) begin
+                if (~rst && ena && Qk[i] == in_ls_cdb_rob_tag) begin
                     Qk[i] <= `ZERO_ROB;
                     Vk[i] <= in_ls_cdb_data;
                 end
@@ -65,7 +65,7 @@ module reservation(
     endgenerate
     // assignment
     always @(posedge clk) begin
-        if (~rst && assignment_ena) begin
+        if (~rst && ena && assignment_ena) begin
             // assignment
             op[free_rs_tag] <= in_op;
             {Qj[free_rs_tag], Qk[free_rs_tag]} <= {in_Qj, in_Qk};
@@ -92,7 +92,7 @@ module reservation(
     end
     always @(posedge clk) begin
         // issue to alu
-        if (~rst) begin
+        if (~rst && ena) begin
             // when what_to_issue =0, op==NOP
             out_op <= op[what_to_issue];
             out_Vk <= Vk[what_to_issue];
@@ -105,6 +105,7 @@ module reservation(
 
 
     // priority encoder-like
+    // todo may be optimized
     always @(*) begin
         free_rs_tag = `ZERO_RS;
         for (j = 1; j <= `RS_SIZE;j = j+1)

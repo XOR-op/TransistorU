@@ -1,6 +1,6 @@
 `include "constant.v"
 module LSqueue(
-    input clk, input rst,
+    input clk, input rst, input ena,
     // input instruction
     input in_enqueue_ena, input [`ROB_WIDTH ] in_enqueue_rob_tag,
     input [`INSTRUCTION_WIDTH ] in_op,
@@ -37,7 +37,7 @@ module LSqueue(
             head <= 0;
             tail <= 1;
             busy_stat <= `FALSE;
-        end else begin
+        end else if (ena) begin
             if (in_enqueue_ena) begin
                 buffered_rob_tag[tail] <= in_enqueue_rob_tag;
                 buffered_op[tail] <= in_op;

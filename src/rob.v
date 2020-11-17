@@ -1,7 +1,7 @@
 `include "constant.v"
 
 module ROB(
-    input clk, input rst,
+    input clk, input rst, input ena,
     // broadcast
     input [`ROB_WIDTH ] in_cdb_rob_tag, input [`DATA_WIDTH ] in_cdb_value,
     input in_cdb_isjump, input [`DATA_WIDTH ] in_cdb_jump_addr,
@@ -12,7 +12,7 @@ module ROB(
     // assignment info for branch prediction
     input in_predicted_taken,
     // write to registers
-    output [`REG_WIDTH ] out_reg_reg,output [`ROB_WIDTH ] out_reg_rob,
+    output [`REG_WIDTH ] out_reg_reg, output [`ROB_WIDTH ] out_reg_rob,
     output [`DATA_WIDTH ] out_reg_value,
     // write value to memory
     output [`DATA_WIDTH ] out_mem_address,
@@ -68,7 +68,7 @@ module ROB(
         if (rst) begin
             head <= 0;
             tail <= 1;
-        end else begin
+        end else if (ena) begin
             // assignment
             if (in_assignment_tag != `ZERO_ROB) begin
                 ready_arr[tail] <= `FALSE;
@@ -82,7 +82,7 @@ module ROB(
                 data_arr[in_cdb_rob_tag] <= in_cdb_value;
                 ready_arr[in_cdb_rob_tag] <= `TRUE;
                 jump_flag_arr[in_cdb_rob_tag] <= in_cdb_isjump;
-                jump_addr_arr[in_cdb_rob_tag]<=in_cdb_jump_addr;
+                jump_addr_arr[in_cdb_rob_tag] <= in_cdb_jump_addr;
             end
             if (in_ls_cdb_rob_tag != `ZERO_ROB) begin
                 data_arr[in_ls_cdb_rob_tag] <= in_ls_cdb_value;
@@ -98,7 +98,7 @@ module ROB(
             else if (ready_arr[head]) begin
                 // work state
                 if (inst_arr[head][`OP_RANGE ] == `BRANCH_OP) begin
-                    out_forwarding_ena<=`TRUE ;
+                    out_forwarding_ena <= `TRUE;
                     if (jump_flag_arr[head] ^ predicted_taken[head]) begin
                         // branch mispredicted
                         out_misbranch <= `TRUE;
@@ -109,7 +109,7 @@ module ROB(
                     out_misbranch <= `TRUE;
                     out_correct_jump_addr <= jump_addr_arr[head];
                     out_reg_reg <= dest_arr[head];
-                    out_reg_rob<=head;
+                    out_reg_rob <= head;
                     out_reg_value <= data_arr[head];
                 end else if (inst_arr[head][`OP_RANGE ] == `STORE_OP) begin
                     // store
@@ -117,7 +117,7 @@ module ROB(
                 end else begin
                     // write to register
                     out_reg_reg <= dest_arr[head];
-                    out_reg_rob<=head;
+                    out_reg_rob <= head;
                     out_reg_value <= data_arr[head];
                 end
                 // update head and tail

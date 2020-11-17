@@ -1,6 +1,6 @@
 `include "constant.v"
 module memory(
-    input clk, input rst,
+    input clk, input rst, input ena,
     // ram
     output reg out_ram_ena, output reg out_ram_rd_wt_flag,
     output reg [`DATA_WIDTH ] out_ram_addr,
@@ -32,7 +32,7 @@ module memory(
             status <= IDLE;
             reg_fetch_ena <= `FALSE;
             reg_ls_ena <= `FALSE;
-        end else begin
+        end else if (ena) begin
             // buffer queries
             if (in_fetcher_ena) begin
                 reg_fetch_ena <= `TRUE;
@@ -62,7 +62,6 @@ module memory(
                             buffered_data <= reg_ls_data;
                             out_ram_data <= reg_ls_data[7:0];
                             out_ram_addr <= reg_ls_addr;
-
                         end
                         out_ram_rd_wt_flag <= `RAM_WT;
                         cur_bytes <= 2'b01;
@@ -94,6 +93,11 @@ module memory(
                     buffered_data <= `ZERO_DATA;
                     out_ram_ena <= `TRUE;
                     out_ram_rd_wt_flag <= `RAM_RD;
+                end else begin
+                    // no income query
+                    out_ram_ena <= `FALSE;
+                    out_ram_rd_wt_flag <= `RAM_RD;
+                    out_ram_addr <= `ZERO_DATA;
                 end
             end else begin
                 // running
