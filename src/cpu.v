@@ -24,10 +24,6 @@ module cpu(
 
     output wire [31:0] dbgreg_dout        // cpu register output (debugging demo)
 );
-    // wire mem_ram_ena, mem_ram_rd_wt_flag;
-    // wire [`RAM_WIDTH ] mem_ram_data;
-    // wire [`DATA_WIDTH ] mem_ram_addr;
-    // wire [`RAM_WIDTH ] ram_mem_output;
 
 // implementation goes here
 
@@ -41,7 +37,7 @@ module cpu(
 // - 0x30004 read: read clocks passed since cpu starts (in dword, 4 bytes)
 // - 0x30004 write: indicates program stop (will output '\0' through uart tx)
     // fetcher
-    wire [`DATA_WIDTH ] fetcher_pc_last_pc, fetcher_inst, fetcher_mem_addr, fetcher_decoder_pc;
+    wire [`DATA_WIDTH ] fetcher_pc_last_pc, fetcher_inst, fetcher_mem_addr, fetcher_out_pc;
     wire fetcher_decoder_ena, fetcher_pc_ena, fetcher_taken, fetcher_mem_ena;
     // pc
     wire pc_clear_all, pc_fetcher_next_taken;
@@ -101,7 +97,7 @@ module cpu(
         .clk(clk_in), .rst(rst_in), .ena(rdy_in),
         .in_fetcher_ena(fetcher_pc_ena),
 
-        .in_last_pc(fetcher_pc_last_pc), .in_last_inst(fetcher_inst),
+        .in_last_pc(fetcher_out_pc), .in_last_inst(fetcher_inst),
         .out_next_pc(pc_fetcher_next_pc),
 
         .in_misbranch(rob_pc_misbranch), .in_forwarding_branch_taken(rob_pc_taken),
@@ -114,22 +110,23 @@ module cpu(
         .clk(clk_in), .rst(rst_in), .ena(rdy_in),
 
         .out_decoder_ena(fetcher_decoder_ena), .out_branch_taken(fetcher_taken),
-        .out_inst(fetcher_inst), .out_decoder_pc(fetcher_decoder_pc),
+        .out_inst(fetcher_inst), .out_decoder_pc(fetcher_out_pc),
 
-        .out_pc_reg_ena(fetcher_pc_ena), .out_pc_query_taken(fetcher_pc_last_pc),
-        .in_result_taken(pc_fetcher_next_taken),
+        .out_pc_reg_ena(fetcher_pc_ena),
+        // .out_pc_query_taken(fetcher_pc_last_pc),
+
 
         .out_mem_ena(fetcher_mem_ena), .out_address(fetcher_mem_addr),
 
         .in_mem_ready(mem_fetcher_ok), .in_mem_inst(mem_fetcher_data),
 
-        .in_pc(pc_fetcher_next_pc)
+        .in_pc(pc_fetcher_next_pc),.in_result_taken(pc_fetcher_next_taken)
     );
 
     decode decode_stage(
-        .clk(clk_in), .ena(~rst_in & ena & rs_decoder_ready & rob_out_available_tag != `ZERO_ROB),
+        .clk(clk_in), .ena(~rst_in & rdy_in & rs_decoder_ready & rob_out_available_tag != `ZERO_ROB),
         .in_inst(fetcher_inst),
-        .in_current_pc(fetcher_decoder_pc), .in_predicted_taken(fetcher_taken),
+        .in_current_pc(fetcher_out_pc), .in_predicted_taken(fetcher_taken),
 
         .regi1(decode_reg_regi1), .regi2(decode_reg_regi2),
 

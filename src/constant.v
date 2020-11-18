@@ -28,13 +28,13 @@
 `define REG_ONEHOT_BOUND 31:0
 `define REG_SIZE 32
 `define ROB_WIDTH 3:0
-`define ROB_SIZE 16
+`define ROB_SIZE 15
 `define OP_RANGE 6:0
 `define RS1_RANGE 19:15
 `define RS2_RANGE 24:20
 `define RD_RANGE 11:7
 `define RS_WIDTH 3:0
-`define RS_SIZE 16
+`define RS_SIZE 15
 `define RAM_WIDTH 7:0
 `define ICACHE_WIDTH 255:0
 `define ICACHE_SIZE 256
@@ -56,8 +56,8 @@
 
 
 // agreement
-`define RAM_RD 1'b1
-`define RAM_WT 1'b0
+`define RAM_RD 1'b0
+`define RAM_WT 1'b1
 
 // opcode
 `define LUI_OP 7'b0110111

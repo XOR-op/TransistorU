@@ -12,7 +12,6 @@ module pc(
     // reset all components for misbranch
     output reg out_clear_all
 );
-    reg [`DATA_WIDTH ] pc;
     // 2-bit saturating counter now
     reg [1:0] prediction_table [`PREDICTION_SLOT_SIZE -1:0];
     wire [`DATA_WIDTH ] J_IMM = {{12{in_last_inst[31]}}, in_last_inst[19:12], in_last_inst[20], in_last_inst[30:25], in_last_inst[24:21], 1'b0},
@@ -21,9 +20,13 @@ module pc(
         out_clear_all = in_misbranch;
         out_next_taken = prediction_table[in_last_pc[`PREDICTION_INDEX_RANGE ]] [1];
     end
+    integer i;
     always @(posedge clk) begin
         if (rst) begin
-            pc <= `ZERO_DATA;
+            out_next_pc <= `ZERO_DATA;
+            out_clear_all<=`FALSE ;
+            out_next_pc<=`ZERO_DATA;
+            for(i=0;i<`PREDICTION_SLOT_SIZE ;i=i+1)prediction_table[i]<=2'b01;
         end else if (ena && in_fetcher_ena) begin
             if (in_misbranch) begin
                 out_next_pc <= in_forwarding_correct_address;

@@ -34,12 +34,19 @@ module reservation(
     reg [`DATA_WIDTH ] PCs [`RS_SIZE :0];
     reg [`DATA_WIDTH ] imms [`RS_SIZE :0];
     // control variable
-    reg [`DATA_WIDTH ] size;
-    assign has_capacity = size == `RS_SIZE;
-    reg [`RS_WIDTH ] free_rs_tag;
+    wire [`RS_WIDTH ] free_rs_tag;
     wire ready_to_issue [`RS_SIZE :1];
-    reg [`RS_WIDTH ] what_to_issue;
+    wire [`RS_WIDTH ] what_to_issue;
+    assign has_capacity = free_rs_tag!=`ZERO_RS ;
+
     // broadcast
+    integer ii;
+    always @(posedge clk) begin
+        if (rst) begin
+            for (ii = 0; ii <= `RS_SIZE;ii = ii+1)
+                busy[ii] <= `FALSE;
+        end
+    end
     generate
         genvar i;
         for (i = 0;i <= `RS_SIZE;i = i+1) begin : broadcast_update
@@ -70,7 +77,7 @@ module reservation(
             op[free_rs_tag] <= in_op;
             {Qj[free_rs_tag], Qk[free_rs_tag]} <= {in_Qj, in_Qk};
             {Vj[free_rs_tag], Vk[free_rs_tag]} <= {in_Vj, in_Vk};
-            busy[free_rs_tag] <= 1'b1;
+            busy[free_rs_tag] <= `TRUE;
             PCs[free_rs_tag] <= in_pc;
             imms[free_rs_tag] <= in_imm;
             rob_tag[free_rs_tag] <= in_has_rd_dest ? in_rd_rob:`ZERO_ROB;
@@ -83,13 +90,24 @@ module reservation(
             assign ready_to_issue[i] = busy[i] &(Qj[i] == `ZERO_ROB) &(Qk[i] == `ZERO_ROB);
         end
     endgenerate
-    integer j;
-    always @(*) begin
-        what_to_issue = `ZERO_RS;
-        for (j = 1; j <= `RS_SIZE;j = j+1)
-            if (ready_to_issue[j])
-                what_to_issue = j;
-    end
+
+    // priority encoder-like
+    assign free_rs_tag=~busy[1]?1:
+        ~busy[2]?2:
+            ~busy[3]?3:
+                ~busy[4]?4:
+                    ~busy[5]?5:
+                        ~busy[6]?6:
+                            ~busy[7]?7:
+                                ~busy[8]?8:
+                                    ~busy[9]?9:
+                                        ~busy[10]?10:
+                                            ~busy[11]?11:
+                                                ~busy[12]?12:
+                                                    ~busy[13]?13:
+                                                        ~busy[14]?14:
+                                                            ~busy[15]?15:
+                                                                `ZERO_RS ;
     always @(posedge clk) begin
         // issue to alu
         if (~rst && ena) begin
@@ -100,17 +118,28 @@ module reservation(
             out_rob_tag <= rob_tag[what_to_issue];
             out_pc <= PCs[what_to_issue];
             out_imm <= imms[what_to_issue];
+            if (what_to_issue != `ZERO_RS) begin
+                busy[what_to_issue] <= `FALSE;
+            end
         end
     end
 
 
-    // priority encoder-like
-    // todo may be optimized
-    always @(*) begin
-        free_rs_tag = `ZERO_RS;
-        for (j = 1; j <= `RS_SIZE;j = j+1)
-            if (!busy[j])
-                free_rs_tag = j;
-    end
+    assign what_to_issue=ready_to_issue[1]?1:
+        ready_to_issue[2]?2:
+            ready_to_issue[3]?3:
+                ready_to_issue[4]?4:
+                    ready_to_issue[5]?5:
+                        ready_to_issue[6]?6:
+                            ready_to_issue[7]?7:
+                                ready_to_issue[8]?8:
+                                    ready_to_issue[9]?9:
+                                        ready_to_issue[10]?10:
+                                            ready_to_issue[11]?11:
+                                                ready_to_issue[12]?12:
+                                                    ready_to_issue[13]?13:
+                                                        ready_to_issue[14]?14:
+                                                            ready_to_issue[15]?15:
+                                                                `ZERO_RS ;
 endmodule : reservation
 
