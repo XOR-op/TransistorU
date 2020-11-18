@@ -29,7 +29,7 @@ module reservation(
     reg [`DATA_WIDTH ] Vj [`RS_SIZE :0];
     reg [`DATA_WIDTH ] Vk [`RS_SIZE :0];
     reg [`DATA_WIDTH ] A [`RS_SIZE :0];
-    reg busy [`RS_WIDTH ];
+    reg busy [`RS_SIZE :0];
     reg [`ROB_WIDTH ] rob_tag [`RS_SIZE :0];
     reg [`DATA_WIDTH ] PCs [`RS_SIZE :0];
     reg [`DATA_WIDTH ] imms [`RS_SIZE :0];

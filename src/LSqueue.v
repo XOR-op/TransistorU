@@ -8,7 +8,7 @@ module LSqueue(
     input [`DATA_WIDTH ] in_address, input [`DATA_WIDTH] in_data,
     input [`ROB_WIDTH ] in_issue_rob_tag,
     // rob commit
-    input [`DATA_WIDTH ] in_commit_rob,
+    input [`ROB_WIDTH  ] in_commit_rob,
     // out to rob and rs
     output reg [`DATA_WIDTH ] out_result, output reg [`ROB_WIDTH ] out_rob_tag,
     // with memory

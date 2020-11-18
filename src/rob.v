@@ -7,7 +7,7 @@ module ROB(
     input in_cdb_isjump, input [`DATA_WIDTH ] in_cdb_jump_addr,
     input [`ROB_WIDTH ] in_ls_cdb_rob_tag, input [`DATA_WIDTH ] in_ls_cdb_value,
     // assignment by decoder
-    input [`ROB_WIDTH ] in_assignment_tag,
+    input in_assignment_ena,
     input [`DATA_WIDTH ] in_inst, input [`REG_WIDTH ] in_dest,
     input [`DATA_WIDTH ] in_pc,
     // assignment info for branch prediction
@@ -63,7 +63,7 @@ module ROB(
             data_arr[`ZERO_ROB ] <= `ZERO_DATA;
         end else if (ena) begin
             // assignment
-            if (in_assignment_tag != `ZERO_ROB) begin
+            if (in_assignment_ena) begin
                 ready_arr[tail] <= `FALSE;
                 inst_arr[tail] <= in_inst;
                 dest_arr[tail] <= in_dest;
