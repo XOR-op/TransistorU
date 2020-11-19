@@ -48,7 +48,7 @@ module cpu(
     wire decode_rs_ena;
     wire [`IMM_WIDTH ] decode_rs_imm;
     wire decode_out_has_dest;
-    wire [`OPERATION_BUS ] decode_rs_op;
+    wire [`OPERATION_BUS ] decode_out_op;
     wire [`DATA_WIDTH ] decode_rs_operand1, decode_rs_operand2, decode_out_current_pc;
     wire [`ROB_WIDTH ] decode_rs_tag1, decode_rs_tag2;
     wire decode_ls_ena;
@@ -109,7 +109,7 @@ module cpu(
     fetcher fetch_stage(
         .clk(clk_in), .rst(rst_in), .ena(rdy_in),
 
-        .out_decoder_ena(fetcher_decoder_ena), .out_branch_taken(fetcher_taken),
+        .out_decoder_and_pc_ena(fetcher_decoder_ena), .out_branch_taken(fetcher_taken),
         .out_inst(fetcher_inst), .out_decoder_pc(fetcher_out_pc),
 
         .out_pc_reg_ena(fetcher_pc_ena),
@@ -124,11 +124,11 @@ module cpu(
     );
 
     decode decode_stage(
-        .clk(clk_in), .ena(~rst_in & rdy_in & rs_decoder_ready & rob_out_available_tag != `ZERO_ROB),
+        .clk(clk_in), .ena(~rst_in & rdy_in &fetcher_decoder_ena& rs_decoder_ready & (rob_out_available_tag != `ZERO_ROB)),
         .in_inst(fetcher_inst),
         .in_current_pc(fetcher_out_pc), .in_predicted_taken(fetcher_taken),
 
-        .regi1(decode_reg_regi1), .regi2(decode_reg_regi2),
+        .out_regi1(decode_reg_regi1), .out_regi2(decode_reg_regi2),
 
         .in_operand1(reg_decode_value1), .in_operand2(reg_decode_value2),
         .in_tag1(reg_decode_tag1), .in_tag2(reg_decode_tag2),
@@ -143,7 +143,7 @@ module cpu(
 
         .out_rs_ena(decode_rs_ena),
         .out_rs_imm(decode_rs_imm),
-        .out_rs_op(decode_rs_op),
+        .out_rs_op(decode_out_op),
         .out_operand1(decode_rs_operand1), .out_operand2(decode_rs_operand2),
         .out_tag1(decode_rs_tag1), .out_tag2(decode_rs_tag2), .out_current_pc(decode_out_current_pc),
         .out_has_dest(decode_out_has_dest),
@@ -158,7 +158,7 @@ module cpu(
         .clk(clk_in), .rst(pc_clear_all | rst_in), .ena(rdy_in),
 
         .assignment_ena(decode_rs_ena), .in_imm(decode_rs_imm),
-        .in_op(decode_rs_op), .in_Qj(decode_rs_tag1), .in_Qk(decode_rs_tag2),
+        .in_op(decode_out_op), .in_Qj(decode_rs_tag1), .in_Qk(decode_rs_tag2),
         .in_Vj(decode_rs_operand1), .in_Vk(decode_rs_operand2),
         .in_pc(decode_out_current_pc), .in_rd_rob(decode_out_rob),
         .in_has_rd_dest(decode_out_has_dest),
@@ -196,7 +196,7 @@ module cpu(
         .in_ls_cdb_rob_tag(ls_cdb_rob_tag), .in_ls_cdb_value(ls_cdb_val),
 
         .in_assignment_ena(decode_rob_assign_ena),
-        .in_inst(decode_rob_inst), .in_dest(decode_out_reg_rd),
+        .in_inst(decode_rob_inst), .in_dest(decode_out_reg_rd),.in_pc(decode_out_op),
 
         .in_predicted_taken(decode_rob_taken),
 
@@ -221,6 +221,7 @@ module cpu(
 
     memory mem_unit(
         // todo bug of store when clear_all
+        // todo may bug if LS doesn't clear after issue
         .clk(clk_in), .rst(rst_in | pc_clear_all), .ena(rdy_in),
 
         .out_ram_ena(mem_ram_ena), .out_ram_rd_wt_flag(mem_wr),

@@ -10,16 +10,17 @@ module alu(
     output reg [`DATA_WIDTH ] out, output reg [`ROB_WIDTH ] out_rob_tag,
     output reg [`DATA_WIDTH ] out_ls_data,
     // to rob for jump
-    output reg jump_ena, output reg[`DATA_WIDTH ] jump_addr
+    output reg jump_ena, output reg [`DATA_WIDTH ] jump_addr
 );
     // combinational logic
     always @(*) begin
         out_ls_data = B;
-        out_rob_tag = in_rob_tag;
+        out_rob_tag = op == `NOP ?`ZERO_ROB :in_rob_tag;
         jump_ena = `FALSE;
         case (op)
             // a b op
-            `ADD : begin out = A+B; end
+            `NOP : begin out = `ZERO_DATA; end
+        `ADD: begin out = A+B; end
         `SUB: begin out = A-B; end
         `AND: begin out = A & B; end
         `OR: begin out = A | B; end
@@ -45,7 +46,8 @@ module alu(
         `JAL: begin out = pc+4; end // jump in fetch stage
         `JALR: begin
             out = pc+4;
-            jump_addr = A+imm; jump_ena = `TRUE; end
+            jump_addr = A+imm;
+            jump_ena = `TRUE; end
         `BEQ: begin
             out = A == B;
             jump_addr = pc+out ? imm:4;

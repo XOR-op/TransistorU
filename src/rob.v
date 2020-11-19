@@ -70,6 +70,11 @@ module ROB(
                 pc_arr[tail] <= in_pc;
                 tail <= tail == `ROB_SIZE ? 1:tail+1;
                 predicted_taken[tail] <= in_predicted_taken;
+                // start from null-state
+                if (head == 0) begin
+                    // move to work-state
+                    head <= 1;
+                end
             end
             // update
             if (in_cdb_rob_tag != `ZERO_ROB) begin
@@ -82,14 +87,9 @@ module ROB(
                 data_arr[in_ls_cdb_rob_tag] <= in_ls_cdb_value;
                 ready_arr[in_ls_cdb_rob_tag] <= `TRUE;
             end
+
             // commit
-            // start from null-state
-            if (head == 0) begin
-                // move to work-state
-                if (tail != 1)
-                    head <= 1;
-            end
-            else if (ready_arr[head]) begin
+            if (ready_arr[head]) begin
                 // work state
                 if (inst_arr[head][`OP_RANGE ] == `BRANCH_OP) begin
                     out_forwarding_ena <= `TRUE;
@@ -115,7 +115,7 @@ module ROB(
                     out_reg_value <= data_arr[head];
                 end
                 // update head and tail
-                if ((head%`ROB_SIZE)+1 == tail) begin
+                if ((head+1 == tail)||(head==`ROB_SIZE &&tail==1)) begin
                     // no existing robs
                     head <= 0;
                     tail <= 1;

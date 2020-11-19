@@ -43,6 +43,8 @@ module reservation(
     integer ii;
     always @(posedge clk) begin
         if (rst) begin
+            op[`ZERO_RS ]<=`NOP ;
+            PCs[`ZERO_RS ]<=`ZERO_DATA ;
             for (ii = 0; ii <= `RS_SIZE;ii = ii+1)
                 busy[ii] <= `FALSE;
         end

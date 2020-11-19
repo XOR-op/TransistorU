@@ -15,12 +15,24 @@ module regFile(
     reg [`DATA_WIDTH ] datas [`REG_SIZE -1:0];
     reg [`ROB_WIDTH ] rob_tags [`REG_SIZE -1:0];
     reg busy [`REG_SIZE -1:0];
+
+    always @(posedge clk) begin
+        if(rst)begin
+            datas[`ZERO_REG ] <= `ZERO_DATA;
+            rob_tags[`ZERO_REG ] <= `ZERO_ROB;
+            busy[`ZERO_REG ] <= `FALSE;
+        end
+    end
     generate
         genvar regi;
         // reg[0] is always 0
         for (regi = 1;regi < `REG_SIZE;regi = regi+1) begin : genreg
             always @(posedge clk) begin
-                if (ena) begin
+                if (rst) begin
+                    datas[regi] <= `ZERO_DATA;
+                    rob_tags[regi] <= `ZERO_ROB;
+                    busy[regi] <= `FALSE;
+                end else if (ena) begin
                     if (in_rob_reg_index == regi) begin
                         // set by rob
                         datas[regi] <= in_new_value;
@@ -48,4 +60,4 @@ module regFile(
         busy2 = busy[read2];
     end
 
-endmodule : regFile
+endmodule: regFile

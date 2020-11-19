@@ -5,7 +5,7 @@ module decode(
     input [`INSTRUCTION_WIDTH] in_inst,
     input [`DATA_WIDTH ] in_current_pc, input in_predicted_taken,
     // to regfile
-    output reg [`REG_WIDTH ] regi1, output reg [`REG_WIDTH ] regi2,
+    output reg [`REG_WIDTH ] out_regi1, output reg [`REG_WIDTH ] out_regi2,
     // from regfile
     input [`DATA_WIDTH ] in_operand1, input [`DATA_WIDTH ] in_operand2,
     input [`ROB_WIDTH ] in_tag1, input [`ROB_WIDTH ] in_tag2,
@@ -13,7 +13,7 @@ module decode(
     // from ROB of sequential logic than pass to next
     input [`ROB_WIDTH ] in_rob_tobe_tag,
     // to ROB query
-    output reg[`ROB_WIDTH ] out_query_tag1, output reg[`ROB_WIDTH ] out_query_tag2,
+    output reg [`ROB_WIDTH ] out_query_tag1, output reg [`ROB_WIDTH ] out_query_tag2,
     // query result from ROB
     input in_query_tag1_ready, input in_query_tag2_ready,
     input [`DATA_WIDTH ] in_query_ready_value1, input [`DATA_WIDTH ] in_query_ready_value2,
@@ -27,7 +27,7 @@ module decode(
     output reg out_has_dest,
     // to LSqueue
     output reg out_lsqueue_ena, output reg [`INSTRUCTION_WIDTH ] out_lsqueue_op,
-    output reg[`ROB_WIDTH ] out_rd_rob_tag, output reg [`DATA_WIDTH ] out_rob_pc,
+    output reg [`ROB_WIDTH ] out_rd_rob_tag, output reg [`DATA_WIDTH ] out_rob_pc,
     // to ROB assignment
     output reg out_rob_assign_ena, output reg [`DATA_WIDTH ] out_rob_inst, output reg [`REG_WIDTH ] out_reg_rd,
     output reg out_predicted_taken
@@ -41,6 +41,7 @@ module decode(
     // decode
     always @(posedge clk) begin
         out_current_pc <= in_current_pc;
+        out_rob_pc <= in_current_pc;
         out_predicted_taken <= in_predicted_taken;
         out_rob_inst <= in_inst;
         out_rd_rob_tag <= in_rob_tobe_tag;
@@ -57,22 +58,22 @@ module decode(
                 `LUI_OP: begin
                 out_rs_op <= `LUI;
                 out_rs_imm <= U_IMM;
-                {regi1, regi2, out_reg_rd} <= {`ZERO_REG , `ZERO_REG , in_inst[`RD_RANGE ]};
+                {out_regi1, out_regi2, out_reg_rd} <= {`ZERO_REG , `ZERO_REG , in_inst[`RD_RANGE ]};
             end
             `AUIPC_OP: begin
                 out_rs_op <= `AUIPC;
                 out_rs_imm <= U_IMM;
-                {regi1, regi2, out_reg_rd} <= {`ZERO_REG , `ZERO_REG , in_inst[`RD_RANGE ]};
+                {out_regi1, out_regi2, out_reg_rd} <= {`ZERO_REG , `ZERO_REG , in_inst[`RD_RANGE ]};
             end
             `JAL_OP: begin
                 out_rs_op <= `JAL;
                 out_rs_imm <= J_IMM;
-                {regi1, regi2, out_reg_rd} <= {`ZERO_REG , `ZERO_REG , in_inst[`RD_RANGE ]};
+                {out_regi1, out_regi2, out_reg_rd} <= {`ZERO_REG , `ZERO_REG , in_inst[`RD_RANGE ]};
             end
             `JALR_OP: begin
                 out_rs_op <= `JALR;
                 out_rs_imm <= I_IMM;
-                {regi1, regi2, out_reg_rd} <= {in_inst[`RS1_RANGE ], `ZERO_REG , in_inst[`RD_RANGE ]};
+                {out_regi1, out_regi2, out_reg_rd} <= {in_inst[`RS1_RANGE ], `ZERO_REG , in_inst[`RD_RANGE ]};
             end
             `BRANCH_OP: begin
                 out_has_dest <= `FALSE;
@@ -85,7 +86,7 @@ module decode(
                         `BLTU3 : out_rs_op <= `BLTU;
                         `BGEU3 : out_rs_op <= `BGEU;
                 endcase
-                {regi1, regi2, out_reg_rd} <= {in_inst[`RS1_RANGE], in_inst[`RS2_RANGE], `ZERO_REG };
+                {out_regi1, out_regi2, out_reg_rd} <= {in_inst[`RS1_RANGE], in_inst[`RS2_RANGE], `ZERO_REG };
             end
             `LOAD_OP: begin
                 out_rs_imm <= I_IMM;
@@ -97,18 +98,18 @@ module decode(
                         `LHU3: out_rs_op <= `LHU;
                 endcase
                 out_lsqueue_ena <= `TRUE;
-                {regi1, regi2, out_reg_rd} <= {in_inst[`RS1_RANGE ], `ZERO_REG , in_inst[`RD_RANGE ]};
+                {out_regi1, out_regi2, out_reg_rd} <= {in_inst[`RS1_RANGE ], `ZERO_REG , in_inst[`RD_RANGE ]};
             end
             `STORE_OP: begin
                 out_has_dest <= `FALSE;
                 out_rs_imm <= S_IMM;
                 case (in_inst[14:12])
                     `SB3 : out_rs_op <= `SB;
-                        `SH3 : out_rs_op <= `SH3;
+                        `SH3 : out_rs_op <= `SH;
                         `SW3 : out_rs_op <= `SH;
                 endcase
                 out_lsqueue_ena <= `TRUE;
-                {regi1, regi2, out_reg_rd} <= {in_inst[`RS1_RANGE ], in_inst[`RS2_RANGE ], in_inst[`RD_RANGE ]};
+                {out_regi1, out_regi2, out_reg_rd} <= {in_inst[`RS1_RANGE ], in_inst[`RS2_RANGE ], `ZERO_REG };
             end
             `ARITHMETIC_OP: begin
                 out_rs_imm <= `ZERO_DATA;
@@ -122,7 +123,7 @@ module decode(
                         `OR3 : out_rs_op <= `OR;
                         `AND3 : out_rs_op <= `AND;
                 endcase
-                {regi1, regi2, out_reg_rd} <= {in_inst[`RS1_RANGE ], in_inst[`RS2_RANGE ], in_inst[`RD_RANGE ]};
+                {out_regi1, out_regi2, out_reg_rd} <= {in_inst[`RS1_RANGE ], in_inst[`RS2_RANGE ], in_inst[`RD_RANGE ]};
             end
             `ARITHMETIC_IMM_OP: begin
                 out_rs_imm <= I_IMM;
@@ -136,14 +137,14 @@ module decode(
                         `OR3 : out_rs_op <= `ORI;
                         `AND3 : out_rs_op <= `ANDI;
                 endcase
-                {regi1, regi2, out_reg_rd} <= {in_inst[`RS1_RANGE ], `ZERO_REG , in_inst[`RD_RANGE ]};
+                {out_regi1, out_regi2, out_reg_rd} <= {in_inst[`RS1_RANGE ], `ZERO_REG , in_inst[`RD_RANGE ]};
             end
                 default: begin
                     // avoid latch
                     out_has_dest <= `FALSE;
                     out_rs_imm <= 0;
                     out_rs_op <= `NOP;
-                    {regi1, regi2, out_reg_rd} <= {`ZERO_REG , `ZERO_REG , `ZERO_REG };
+                    {out_regi1, out_regi2, out_reg_rd} <= {`ZERO_REG , `ZERO_REG , `ZERO_REG };
                 end
             endcase
         end
