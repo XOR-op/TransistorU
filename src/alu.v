@@ -41,7 +41,7 @@ module alu(
         `SLTIU: begin out = (A < imm); end
         `SLTI: begin out = $signed(A) < $signed(imm); end
         // other
-        `LUI: begin out = {imm, 12'b0}; end
+        `LUI: begin out = imm; end
         `AUIPC: begin out = pc+imm; end
         `JAL: begin out = pc+4; end // jump in fetch stage
         `JALR: begin

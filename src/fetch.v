@@ -1,6 +1,7 @@
 `include "constant.v"
 module fetcher(
     input clk, input rst, input ena,
+    input in_rollback,
     // to decoder
     output reg out_decoder_and_pc_ena, output reg out_branch_taken,
     output reg [`DATA_WIDTH ] out_inst, output reg [`DATA_WIDTH ] out_decoder_pc,
@@ -39,8 +40,10 @@ module fetcher(
                 tag[i] <= 0;
             end
             busy <= `FALSE;
-            // out_pc_reg_ena <= `FALSE;
             out_address <= `ZERO_DATA;
+        end else if (in_rollback) begin
+            // stop reading inst
+            busy<=`FALSE ;
         end else if (in_mem_ready) begin
             data[in_pc[`INDEX_WIDTH ]] <= in_mem_inst;
             valid[in_pc[`INDEX_WIDTH ]] <= `TRUE;

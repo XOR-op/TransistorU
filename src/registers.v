@@ -2,7 +2,7 @@
 module regFile(
     input clk, input rst, input ena,
     // misbranch
-    input in_clear_all_rst,
+    input in_rollback,
     // decoder read value
     input [`REG_WIDTH ] read1, input [`REG_WIDTH ] read2,
     output reg [`DATA_WIDTH ] value1, output reg [`DATA_WIDTH ] value2,
@@ -35,7 +35,7 @@ module regFile(
                     datas[regi] <= `ZERO_DATA;
                     rob_tags[regi] <= `ZERO_ROB;
                     busy[regi] <= `FALSE;
-                end else if (in_clear_all_rst) begin
+                end else if (in_rollback) begin
                     rob_tags[regi]<=`ZERO_ROB ;
                     busy[regi] <= `FALSE;
                 end else if (ena) begin

@@ -55,6 +55,7 @@ module ROB(
         out_misbranch <= `FALSE;
         out_correct_jump_addr <= `ZERO_DATA;
         out_forwarding_ena <= `FALSE;
+        out_committed_rob_tag<=`ZERO_ROB ;
         if (rst) begin
             empty <=`TRUE   ;
             head<=1;

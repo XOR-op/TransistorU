@@ -40,7 +40,7 @@ module cpu(
     wire [`DATA_WIDTH ] fetcher_pc_last_pc, fetcher_inst, fetcher_mem_addr, fetcher_out_pc;
     wire fetcher_decoder_ena, fetcher_pc_ena, fetcher_taken, fetcher_mem_ena;
     // pc
-    wire pc_clear_all, pc_fetcher_next_taken;
+    wire pc_rollback, pc_fetcher_next_taken;
     wire [`DATA_WIDTH ] pc_fetcher_next_pc;
     // decode
     wire [`REG_WIDTH ] decode_reg_regi1, decode_reg_regi2;
@@ -85,6 +85,7 @@ module cpu(
     wire [`DATA_WIDTH ] ls_cdb_val;
     wire [`ROB_WIDTH ] ls_cdb_rob_tag;
     wire [`DATA_WIDTH ] ls_mem_addr, ls_mem_val;
+    wire [2:0] ls_mem_size;
     wire ls_mem_ena, ls_mem_iswrite;
     // ram
     wire [`RAM_WIDTH ] ram_mem_output;
@@ -101,11 +102,12 @@ module cpu(
         .in_misbranch(rob_pc_misbranch), .in_forwarding_branch_taken(rob_pc_taken),
         .in_forwarding_branch_pc(rob_pc_branch_pc), .in_forwarding_correct_address(rob_pc_correct_jump_addr),
 
-        .out_clear_all(pc_clear_all)
+        .out_rollback(pc_rollback)
     );
 
     fetcher fetch_stage(
         .clk(clk_in), .rst(rst_in), .ena(rdy_in),
+        .in_rollback(pc_rollback),
 
         .out_decoder_and_pc_ena(fetcher_decoder_ena), .out_branch_taken(fetcher_taken),
         .out_inst(fetcher_inst), .out_decoder_pc(fetcher_out_pc),
@@ -118,11 +120,11 @@ module cpu(
 
         .in_mem_ready(mem_fetcher_ok), .in_mem_inst(mem_fetcher_data),
 
-        .in_pc(pc_fetcher_next_pc),.in_result_taken(pc_fetcher_next_taken)
+        .in_pc(pc_fetcher_next_pc), .in_result_taken(pc_fetcher_next_taken)
     );
 
     decode decode_stage(
-        .clk(clk_in), .ena(~rst_in & rdy_in &fetcher_decoder_ena& rs_decoder_ready & (rob_out_available_tag != `ZERO_ROB)),
+        .clk(clk_in), .ena(~rst_in & rdy_in & fetcher_decoder_ena & rs_decoder_ready & (rob_out_available_tag != `ZERO_ROB)),
         .in_inst(fetcher_inst),
         .in_current_pc(fetcher_out_pc), .in_predicted_taken(fetcher_taken),
 
@@ -146,14 +148,14 @@ module cpu(
 
         .out_lsqueue_ena(decode_ls_ena), .out_lsqueue_op(decode_ls_op), .out_rd_rob_tag(decode_out_rob), .out_rob_pc(decode_out_current_pc),
 
-         .out_rob_inst(decode_rob_inst), .out_reg_rd(decode_out_reg_rd),
+        .out_rob_inst(decode_rob_inst), .out_reg_rd(decode_out_reg_rd),
         .out_predicted_taken(decode_rob_taken),
 
         .out_assign_ena(decode_out_assign_ena)
     );
 
     reservation resevation_stage(
-        .clk(clk_in), .rst(pc_clear_all | rst_in), .ena(rdy_in),
+        .clk(clk_in), .rst(pc_rollback | rst_in), .ena(rdy_in),
 
         .assignment_ena(decode_out_assign_ena), .in_imm(decode_rs_imm),
         .in_op(decode_out_op), .in_Qj(decode_rs_tag1), .in_Qk(decode_rs_tag2),
@@ -186,14 +188,14 @@ module cpu(
     );
 
     ROB rob_stage(
-        .clk(clk_in), .rst(rst_in | pc_clear_all), .ena(rdy_in),
+        .clk(clk_in), .rst(rst_in | pc_rollback), .ena(rdy_in),
 
         .in_cdb_rob_tag(alu_cdb_rob_tag), .in_cdb_value(alu_cdb_out),
         .in_cdb_isjump(alu_cdb_rob_jump_ena), .in_cdb_jump_addr(alu_cdb_jump_addr),
         .in_ls_cdb_rob_tag(ls_cdb_rob_tag), .in_ls_cdb_value(ls_cdb_val),
 
         .in_assignment_ena(decode_out_assign_ena),
-        .in_inst(decode_rob_inst), .in_dest(decode_out_reg_rd),.in_pc(decode_out_current_pc),
+        .in_inst(decode_rob_inst), .in_dest(decode_out_reg_rd), .in_pc(decode_out_current_pc),
 
         .in_predicted_taken(decode_rob_taken),
 
@@ -202,7 +204,7 @@ module cpu(
 
         .in_query_tag1(decode_rob_query_tag1), .in_query_tag2(decode_rob_query_tag2),
 
-        .out_back_value1(rob_decode_value1), .out_back_value2(reg_decode_value2),
+        .out_back_value1(rob_decode_value1), .out_back_value2(rob_decode_value2),
         .out_back_ready1(rob_decode_rdy1), .out_back_ready2(rob_decode_rdy2),
         .out_rob_available_tag(rob_out_available_tag),
 
@@ -216,9 +218,10 @@ module cpu(
 
     // todo may bug of clear_all
     memory mem_unit(
-        .clk(clk_in), .rst(rst_in | pc_clear_all), .ena(rdy_in),
+        .clk(clk_in), .rst(rst_in), .ena(rdy_in),
+        .in_rollback(pc_rollback),
 
-        .out_ram_ena(),.out_ram_rd_wt_flag(mem_wr),
+        .out_ram_rd_wt_flag(mem_wr),
         .out_ram_addr(mem_a),
         .out_ram_data(mem_dout), .in_ram_data(mem_din),
 
@@ -226,13 +229,13 @@ module cpu(
         .out_fetcher_ok(mem_fetcher_ok), .out_fetcher_data(mem_fetcher_data),
 
         .in_ls_ena(ls_mem_ena), .in_ls_iswrite(ls_mem_iswrite), .in_ls_addr(ls_mem_addr),
-        .in_ls_data(ls_mem_val),
+        .in_ls_data(ls_mem_val), .in_ls_size(ls_mem_size),
         .out_ls_data(mem_ls_data), .out_ls_ok(mem_ls_ok)
     );
 
     regFile register_unit(
         .clk(clk_in), .rst(rst_in), .ena(rdy_in),
-        .in_clear_all_rst(pc_clear_all),
+        .in_rollback(pc_rollback),
 
         .read1(decode_reg_regi1), .read2(decode_reg_regi2),
         .value1(reg_decode_value1), .value2(reg_decode_value2),
@@ -248,7 +251,7 @@ module cpu(
 
     LSqueue lsbuffer_stage(
         .clk(clk_in), .rst(rst_in), .ena(rdy_in),
-        .in_clear_all_reset(pc_clear_all),
+        .in_rollback(pc_rollback),
 
         .in_enqueue_ena(decode_ls_ena), .in_enqueue_rob_tag(decode_out_rob),
         .in_op(decode_ls_op),
@@ -262,7 +265,7 @@ module cpu(
 
         .in_mem_ready(mem_ls_ok), .in_mem_read_data(mem_ls_data),
         .out_mem_addr(ls_mem_addr), .out_mem_write_data(ls_mem_val),
-        .out_mem_ena(ls_mem_ena), .out_mem_iswrite(ls_mem_iswrite)
+        .out_mem_ena(ls_mem_ena), .out_mem_iswrite(ls_mem_iswrite), .out_mem_size(ls_mem_size)
     );
 
 endmodule : cpu

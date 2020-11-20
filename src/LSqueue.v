@@ -2,7 +2,7 @@
 module LSqueue(
     input clk, input rst, input ena,
     // misbranch
-    input in_clear_all_reset,
+    input in_rollback,
     // input instruction
     input in_enqueue_ena, input [`ROB_WIDTH ] in_enqueue_rob_tag,
     input [`INSTRUCTION_WIDTH ] in_op,
@@ -16,7 +16,7 @@ module LSqueue(
     // with memory
     input in_mem_ready, input [`DATA_WIDTH ] in_mem_read_data,
     output reg [`DATA_WIDTH ] out_mem_addr, output reg [`DATA_WIDTH ] out_mem_write_data,
-    output reg out_mem_ena, output reg out_mem_iswrite
+    output reg out_mem_ena, output reg out_mem_iswrite, output reg [2:0] out_mem_size
 );
     reg [`ROB_WIDTH ] buffered_rob_tag [`ROB_SIZE :1];
     reg [`INSTRUCTION_WIDTH] buffered_op [`ROB_SIZE :1];
@@ -24,7 +24,7 @@ module LSqueue(
     reg [`DATA_WIDTH ] buffered_data [`ROB_SIZE :1];
     reg buffered_valid [`ROB_SIZE :1];
     reg committed [`ROB_SIZE :1];
-    reg [`DATA_WIDTH ] head, tail, last_store;
+    reg [7:0] head, tail, last_store;
     // LH and LB calls for signed-extension
     parameter IDLE=0, STORE=1, LOAD=2, LH=3, LB=4;
     reg [2:0] busy_stat;
@@ -40,18 +40,18 @@ module LSqueue(
             tail <= 1;
             last_store <= 0;
             busy_stat <= `FALSE;
-        end else if (in_clear_all_reset) begin
-            if(last_store==0)begin
+        end else if (in_rollback) begin
+            if (last_store == 0) begin
                 head <= 0;
                 tail <= 1;
                 last_store <= 0;
                 busy_stat <= `FALSE;
             end else begin
-                tail<=last_store;
+                tail <= last_store;
             end
             // stop loading
-            if(busy_stat==LOAD)
-                busy_stat<=IDLE;
+            if (busy_stat == LOAD)
+                busy_stat <= IDLE;
         end else if (ena) begin
             if (in_enqueue_ena) begin
                 buffered_rob_tag[tail] <= in_enqueue_rob_tag;
@@ -59,6 +59,8 @@ module LSqueue(
                 buffered_valid[tail] <= `FALSE;
                 committed[tail] <= `FALSE;
                 tail <= tail == `ROB_SIZE ? 1:tail+1;
+                if (head == 0)
+                    head <= 1;
             end
             // broadcast
             for (i = 1; i <= `ROB_SIZE;i = i+1) begin
@@ -81,30 +83,51 @@ module LSqueue(
                 if (head != 0 && buffered_valid[head] && (buffered_op[head][`OP_RANGE ] == `LOAD_OP || committed[head])) begin
                     out_mem_ena <= `TRUE;
                     pending_rob <= buffered_rob_tag[head];
+                    // update head
+                    if (head+1 == tail || (head == `ROB_SIZE && tail == 1)) begin
+                        head <= 0;
+                        tail <= 1;
+                    end else begin
+                        head <= (head == `ROB_SIZE) ? 1:head+1;
+                    end
                     if (buffered_op[head][`OP_RANGE ] == `LOAD_OP) begin
                         out_mem_iswrite <= `FALSE;
-                        case (buffered_op[head][14:12])
-                            3'b000: busy_stat <= LB;
-                            3'b001: busy_stat <= LH;
-                            default: busy_stat <= LOAD;
-                        endcase
                         out_mem_write_data <= `ZERO_DATA;
                         out_mem_addr <= buffered_address[head];
+                        case (buffered_op[head][14:12])
+                            3'b000: begin
+                                busy_stat <= LB;
+                                out_mem_size <= 1;
+                            end
+                            3'b001: begin
+                                busy_stat <= LH;
+                                out_mem_size <= 2;
+                            end
+                            default: begin
+                                busy_stat <= LOAD;
+                                out_mem_size <= 4;
+                            end
+                        endcase
                     end else begin
                         // store
                         out_mem_iswrite <= `TRUE;
                         out_mem_write_data <= buffered_data[head];
                         out_mem_addr <= buffered_address[head];
                         busy_stat <= STORE;
+                        case (buffered_op[head][14:12])
+                            3'b000: begin
+                                out_mem_size <= 1;
+                            end
+                            3'b001: begin
+                                out_mem_size <= 2;
+                            end
+                            default: begin
+                                out_mem_size <= 4;
+                            end
+                        endcase
                         if (last_store == head)
                             last_store <= 0;
                     end
-                    // update head
-                    if (head+1 == tail || (head == `ROB_SIZE && tail == 1)) begin
-                        head <= 0;
-                        tail <= 1;
-                    end else
-                        head <= head == `ROB_SIZE ? 1:tail+1;
                 end
             end else begin
                 // wait for memory

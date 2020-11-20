@@ -1,8 +1,10 @@
 `include "constant.v"
 module memory(
     input clk, input rst, input ena,
+    // misbranch
+    input in_rollback,
     // ram
-    output reg out_ram_ena, output reg out_ram_rd_wt_flag,
+    output reg out_ram_rd_wt_flag,
     output reg [`DATA_WIDTH ] out_ram_addr,
     output reg [`RAM_WIDTH ] out_ram_data, input [`RAM_WIDTH ] in_ram_data,
     // fetcher
@@ -26,24 +28,29 @@ module memory(
     reg [1:0] status;
     reg [`DATA_WIDTH ] buffered_addr;
     reg [`DATA_WIDTH ] buffered_data;
-    reg [2:0] where_to_stop, cur_status;
-    assign out_fetcher_data=buffered_data;
-    assign out_ls_data=buffered_data;
+    reg [2:0] stop_stage, cur_stage;
+    assign out_fetcher_data = buffered_data;
+    assign out_ls_data = buffered_data;
     always @(posedge clk) begin
-        out_ls_ok<=`FALSE ;
-        out_fetcher_ok<=`FALSE ;
+        out_ls_ok <= `FALSE;
+        out_fetcher_ok <= `FALSE;
+        out_ram_rd_wt_flag <= `RAM_RD;
         if (rst) begin
             status <= IDLE;
             reg_fetch_ena <= `FALSE;
             reg_ls_ena <= `FALSE;
-            out_ls_ok<=`FALSE ;
-            out_fetcher_ok<=`FALSE ;
-            out_ram_ena<=`FALSE ;
+            out_ls_ok <= `FALSE;
+            out_fetcher_ok <= `FALSE;
+        end else if (in_rollback) begin
+            if (status != LS_WRITE)
+                status <= IDLE;
+            reg_ls_ena <= `FALSE;
+            reg_fetch_ena <= `FALSE;
         end else if (ena) begin
             // buffer queries
             if (in_fetcher_ena) begin
                 reg_fetch_ena <= `TRUE;
-                reg_fetch_addr = in_fetcher_addr;
+                reg_fetch_addr <= in_fetcher_addr;
             end
             if (in_ls_ena) begin
                 reg_ls_ena <= `TRUE;
@@ -58,91 +65,85 @@ module memory(
                     if (in_ls_iswrite) begin
                         // write
                         if (in_ls_iswrite) begin
-                            where_to_stop <= in_ls_size-1;
+                            stop_stage <= in_ls_size-1;
                             buffered_addr <= in_ls_addr+1;
                             buffered_data <= in_ls_data;
                             out_ram_data <= in_ls_data[7:0];
                             out_ram_addr <= in_ls_addr;
                         end else begin
-                            where_to_stop <= reg_ls_size-1;
+                            stop_stage <= reg_ls_size-1;
                             buffered_addr <= reg_ls_addr+1;
                             buffered_data <= reg_ls_data;
                             out_ram_data <= reg_ls_data[7:0];
                             out_ram_addr <= reg_ls_addr;
                         end
                         out_ram_rd_wt_flag <= `RAM_WT;
-                        cur_status <= 3'b01;
+                        cur_stage <= 3'b01;
                         status <= LS_WRITE;
-                        out_ram_ena <= `TRUE;
                     end else begin
                         // read
                         if (in_ls_iswrite) begin
-                            where_to_stop <= in_ls_size-1;
+                            stop_stage <= in_ls_size-1;
                             buffered_addr <= in_ls_addr+1;
                             out_ram_addr <= in_ls_addr;
                         end else begin
-                            where_to_stop <= reg_ls_size;
+                            stop_stage <= reg_ls_size-1;
                             buffered_addr <= reg_ls_addr+1;
                             out_ram_addr <= reg_ls_addr;
                         end
-                        cur_status <= 3'b000;
+                        cur_stage <= 3'b000;
                         status <= LS_READ;
                         buffered_data <= `ZERO_DATA;
-                        out_ram_ena <= `TRUE;
                         out_ram_rd_wt_flag <= `RAM_RD;
                     end
-                end else if (in_fetcher_ena || reg_fetch_ena) begin
+                end else if (in_fetcher_ena||reg_fetch_ena) begin
+                    // fetch instructions
                     buffered_addr <= in_fetcher_ena ? in_fetcher_addr+1:reg_fetch_addr+1;
                     out_ram_addr <= in_fetcher_ena ? in_fetcher_addr:reg_fetch_addr;
-                    where_to_stop <= 3'b100;
-                    cur_status <= 3'b000;
+                    stop_stage <= 3'b100;
+                    cur_stage <= 3'b000;
                     status <= ICACHE_READ;
                     buffered_data <= `ZERO_DATA;
-                    out_ram_ena <= `TRUE;
                     out_ram_rd_wt_flag <= `RAM_RD;
                 end else begin
                     // no income query
-                    out_ram_ena <= `FALSE;
                     out_ram_rd_wt_flag <= `RAM_RD;
                     out_ram_addr <= `ZERO_DATA;
                 end
             end else begin
                 // running
-                out_ram_ena <= `TRUE;
                 out_ram_addr <= buffered_addr;
-                out_ram_rd_wt_flag <= status != LS_WRITE?`RAM_RD :`RAM_WT ;
+                out_ram_rd_wt_flag <= status != LS_WRITE ?`RAM_RD :`RAM_WT;
                 // may overflow
                 buffered_addr <= buffered_addr+1;
-                cur_status <= cur_status+1;
+                cur_stage <= cur_stage+1;
                 case (status)
                     ICACHE_READ: begin
                         // read data
-                        case (cur_status)
+                        case (cur_stage)
                             // due to mysterious ram logic, read takes two cycles
                             3'b001: buffered_data[7:0] <= in_ram_data;
                             3'b010: buffered_data[15:8] <= in_ram_data;
                             3'b011: buffered_data[23:16] <= in_ram_data;
                             3'b100: buffered_data[31:24] <= in_ram_data;
                         endcase
-                        if (cur_status == 3'b100) begin
+                        if (cur_stage == 3'b100) begin
                             // finish
                             out_fetcher_ok <= `TRUE;
                             status <= IDLE;
-                            out_ram_ena <= `FALSE;
                             reg_fetch_ena <= `FALSE;
                         end
                     end
                     LS_READ: begin
                         // read data
-                        case (cur_status)
+                        case (cur_stage)
                             3'b001: buffered_data[7:0] <= in_ram_data;
                             3'b010: buffered_data[15:8] <= in_ram_data;
                             3'b011: buffered_data[23:16] <= in_ram_data;
                             3'b100: buffered_data[31:24] <= in_ram_data;
                         endcase
-                        if (cur_status == where_to_stop) begin
+                        if (cur_stage == stop_stage) begin
                             // finish
-                            out_ram_ena <= `FALSE;
                             out_ls_ok <= `TRUE;
                             status <= IDLE;
                             reg_ls_ena <= `FALSE;
@@ -150,15 +151,15 @@ module memory(
                     end
                     LS_WRITE: begin
                         // write data
-                        case (cur_status)
+                        case (cur_stage)
                             // one clock ahead
                             3'b01: out_ram_data <= buffered_data[15:8];
                             3'b10: out_ram_data <= buffered_data[23:15];
                             3'b11: out_ram_data <= buffered_data[31:24];
                         endcase
-                        if (cur_status == where_to_stop) begin
+                        if (cur_stage == stop_stage) begin
                             // finish
-                            // leave out_ram_ena true
+                            out_ls_ok <= `TRUE;
                             status <= IDLE;
                             reg_ls_ena <= `FALSE;
                         end
