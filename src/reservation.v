@@ -10,7 +10,6 @@ module reservation(
     input [`DATA_WIDTH ] in_Vj, input [`DATA_WIDTH ] in_Vk,
     input [`DATA_WIDTH ] in_pc,
     input [`ROB_WIDTH ] in_rd_rob,
-    input in_has_rd_dest,
     // CDB broadcast
     input [`ROB_WIDTH ] in_alu_cdb_rob_tag, input [`DATA_WIDTH ] in_alu_cdb_data,
     input [`ROB_WIDTH ] in_ls_cdb_rob_tag, input [`DATA_WIDTH ] in_ls_cdb_data,
@@ -82,7 +81,7 @@ module reservation(
             busy[free_rs_tag] <= `TRUE;
             PCs[free_rs_tag] <= in_pc;
             imms[free_rs_tag] <= in_imm;
-            rob_tag[free_rs_tag] <= in_has_rd_dest ? in_rd_rob:`ZERO_ROB;
+            rob_tag[free_rs_tag] <= in_rd_rob;
         end
     end
 

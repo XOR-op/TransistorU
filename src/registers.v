@@ -1,13 +1,16 @@
 `include "constant.v"
 module regFile(
     input clk, input rst, input ena,
+    // misbranch
+    input in_clear_all_rst,
     // decoder read value
     input [`REG_WIDTH ] read1, input [`REG_WIDTH ] read2,
     output reg [`DATA_WIDTH ] value1, output reg [`DATA_WIDTH ] value2,
     output reg [`ROB_WIDTH ] rob_tag1, output reg [`ROB_WIDTH ] rob_tag2,
     output reg busy1, output reg busy2,
     // set rd's rob_tag by decoder
-    input in_occupy_ena, input [`REG_WIDTH ] in_occupied_reg, input [`ROB_WIDTH ] in_occupied_rob_tag,
+    input in_assignment_ena,
+    input [`REG_WIDTH ] in_occupied_reg, input [`ROB_WIDTH ] in_occupied_rob_tag,
     // set value by rob
     input [`REG_WIDTH ] in_rob_reg_index, input [`ROB_WIDTH ] in_rob_entry_tag,
     input [`DATA_WIDTH ] in_new_value
@@ -17,7 +20,7 @@ module regFile(
     reg busy [`REG_SIZE -1:0];
 
     always @(posedge clk) begin
-        if(rst)begin
+        if (rst) begin
             datas[`ZERO_REG ] <= `ZERO_DATA;
             rob_tags[`ZERO_REG ] <= `ZERO_ROB;
             busy[`ZERO_REG ] <= `FALSE;
@@ -32,6 +35,9 @@ module regFile(
                     datas[regi] <= `ZERO_DATA;
                     rob_tags[regi] <= `ZERO_ROB;
                     busy[regi] <= `FALSE;
+                end else if (in_clear_all_rst) begin
+                    rob_tags[regi]<=`ZERO_ROB ;
+                    busy[regi] <= `FALSE;
                 end else if (ena) begin
                     if (in_rob_reg_index == regi) begin
                         // set by rob
@@ -42,7 +48,7 @@ module regFile(
                             busy[regi] <= `FALSE;
                         end
                     end
-                    if (in_occupied_reg == regi) begin
+                    if (in_assignment_ena&&in_occupied_reg == regi) begin
                         rob_tags[regi] <= in_occupied_rob_tag;
                         busy[regi] <= `TRUE;
                     end

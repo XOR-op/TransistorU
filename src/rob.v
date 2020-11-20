@@ -15,8 +15,6 @@ module ROB(
     // write to registers
     output reg [`REG_WIDTH ] out_reg_reg, output reg [`ROB_WIDTH ] out_reg_rob,
     output reg [`DATA_WIDTH ] out_reg_value,
-    // write value to memory
-    output [`DATA_WIDTH ] out_mem_address,
     // ROB ready from decoder
     input [`ROB_WIDTH ] in_query_tag1, input [`ROB_WIDTH ] in_query_tag2,
     // return to decoder
@@ -32,7 +30,8 @@ module ROB(
     output reg [`DATA_WIDTH ] out_correct_jump_addr
 );
 
-    reg [`DATA_WIDTH ] head = 0, tail = 1;
+    reg [7:0 ] head = 0, tail = 1;
+    reg empty;
     // standard robs
     reg [`DATA_WIDTH ] data_arr [`ROB_SIZE :0];
     reg ready_arr [`ROB_SIZE :0];
@@ -44,7 +43,7 @@ module ROB(
     reg jump_flag_arr [`ROB_SIZE :0];
     reg [`DATA_WIDTH ] jump_addr_arr [`ROB_SIZE :0];
 
-    assign out_rob_available_tag = head == tail ?`ZERO_ROB :tail;
+    assign out_rob_available_tag = (empty||(head!=tail))?tail:`ZERO_ROB ;
     // decoder read
     always @(*) begin
         out_back_ready1 = ready_arr[in_query_tag1];
@@ -57,8 +56,9 @@ module ROB(
         out_correct_jump_addr <= `ZERO_DATA;
         out_forwarding_ena <= `FALSE;
         if (rst) begin
-            head <= 0;
-            tail <= 1;
+            empty <=`TRUE   ;
+            head<=1;
+            tail<=1;
             ready_arr[`ZERO_ROB ] <= `FALSE;
             data_arr[`ZERO_ROB ] <= `ZERO_DATA;
         end else if (ena) begin
@@ -70,11 +70,7 @@ module ROB(
                 pc_arr[tail] <= in_pc;
                 tail <= tail == `ROB_SIZE ? 1:tail+1;
                 predicted_taken[tail] <= in_predicted_taken;
-                // start from null-state
-                if (head == 0) begin
-                    // move to work-state
-                    head <= 1;
-                end
+                empty <=`FALSE   ;
             end
             // update
             if (in_cdb_rob_tag != `ZERO_ROB) begin
@@ -89,7 +85,7 @@ module ROB(
             end
 
             // commit
-            if (ready_arr[head]) begin
+            if (!empty &ready_arr[head]) begin
                 // work state
                 if (inst_arr[head][`OP_RANGE ] == `BRANCH_OP) begin
                     out_forwarding_ena <= `TRUE;
@@ -114,14 +110,11 @@ module ROB(
                     out_reg_rob <= head;
                     out_reg_value <= data_arr[head];
                 end
-                // update head and tail
-                if ((head+1 == tail)||(head==`ROB_SIZE &&tail==1)) begin
-                    // no existing robs
-                    head <= 0;
-                    tail <= 1;
-                end else begin
-                    head <= head == `ROB_SIZE ? 1:head+1;
-                end
+                // update head
+                if((head+1==tail)||(head==`RS_SIZE &&tail==1))
+                    empty <=`TRUE  ;
+                head<=(head==`RS_SIZE )?1:head+1;
+                ready_arr[head]<=`FALSE ;
             end else begin
                 // avoid latch
                 out_reg_reg <= `ZERO_ROB;

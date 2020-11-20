@@ -1,6 +1,8 @@
 `include "constant.v"
 module LSqueue(
     input clk, input rst, input ena,
+    // misbranch
+    input in_clear_all_reset,
     // input instruction
     input in_enqueue_ena, input [`ROB_WIDTH ] in_enqueue_rob_tag,
     input [`INSTRUCTION_WIDTH ] in_op,
@@ -8,7 +10,7 @@ module LSqueue(
     input [`DATA_WIDTH ] in_address, input [`DATA_WIDTH] in_data,
     input [`ROB_WIDTH ] in_issue_rob_tag,
     // rob commit
-    input [`ROB_WIDTH  ] in_commit_rob,
+    input [`ROB_WIDTH ] in_commit_rob,
     // out to rob and rs
     output reg [`DATA_WIDTH ] out_result, output reg [`ROB_WIDTH ] out_rob_tag,
     // with memory
@@ -22,7 +24,7 @@ module LSqueue(
     reg [`DATA_WIDTH ] buffered_data [`ROB_SIZE :1];
     reg buffered_valid [`ROB_SIZE :1];
     reg committed [`ROB_SIZE :1];
-    reg [`DATA_WIDTH ] head, tail;
+    reg [`DATA_WIDTH ] head, tail, last_store;
     // LH and LB calls for signed-extension
     parameter IDLE=0, STORE=1, LOAD=2, LH=3, LB=4;
     reg [2:0] busy_stat;
@@ -36,7 +38,20 @@ module LSqueue(
         if (rst) begin
             head <= 0;
             tail <= 1;
+            last_store <= 0;
             busy_stat <= `FALSE;
+        end else if (in_clear_all_reset) begin
+            if(last_store==0)begin
+                head <= 0;
+                tail <= 1;
+                last_store <= 0;
+                busy_stat <= `FALSE;
+            end else begin
+                tail<=last_store;
+            end
+            // stop loading
+            if(busy_stat==LOAD)
+                busy_stat<=IDLE;
         end else if (ena) begin
             if (in_enqueue_ena) begin
                 buffered_rob_tag[tail] <= in_enqueue_rob_tag;
@@ -54,8 +69,12 @@ module LSqueue(
                     buffered_address[i] <= in_address;
                     buffered_valid[i] <= `TRUE;
                 end
-                if (in_commit_rob == buffered_rob_tag[i])
+                if (in_commit_rob == buffered_rob_tag[i]) begin
                     committed[i] <= `TRUE;
+                    if (buffered_op[i][`OP_RANGE ] == `STORE_OP) begin
+                        last_store <= i;
+                    end
+                end
             end
             // try to issue LOAD&STORE
             if (busy_stat == IDLE) begin
@@ -77,7 +96,15 @@ module LSqueue(
                         out_mem_write_data <= buffered_data[head];
                         out_mem_addr <= buffered_address[head];
                         busy_stat <= STORE;
+                        if (last_store == head)
+                            last_store <= 0;
                     end
+                    // update head
+                    if (head+1 == tail || (head == `ROB_SIZE && tail == 1)) begin
+                        head <= 0;
+                        tail <= 1;
+                    end else
+                        head <= head == `ROB_SIZE ? 1:tail+1;
                 end
             end else begin
                 // wait for memory
