@@ -43,18 +43,17 @@ module cpu(
     wire pc_rollback, pc_fetcher_next_taken;
     wire [`DATA_WIDTH ] pc_fetcher_next_pc;
     // decode
+    wire [`OPERATION_BUS ] decode_rs_op;
     wire [`REG_WIDTH ] decode_reg_regi1, decode_reg_regi2;
     wire [`ROB_WIDTH ] decode_rob_query_tag1, decode_rob_query_tag2;
     wire [`IMM_WIDTH ] decode_rs_imm;
     wire decode_out_has_dest;
-    wire [`OPERATION_BUS ] decode_out_op;
-    wire [`DATA_WIDTH ] decode_rs_operand1, decode_rs_operand2, decode_out_current_pc;
+    wire [`DATA_WIDTH ] decode_rs_operand1, decode_rs_operand2;
     wire [`ROB_WIDTH ] decode_rs_tag1, decode_rs_tag2;
     wire decode_ls_ena;
-    wire [`DATA_WIDTH ] decode_ls_op;
     wire [`ROB_WIDTH ] decode_out_rob;
     wire decode_out_assign_ena, decode_rob_taken;
-    wire [`DATA_WIDTH ] decode_rob_inst;
+    wire [`DATA_WIDTH ] decode_out_inst, decode_out_current_pc;
     wire [`REG_WIDTH ] decode_out_reg_rd;
     // RS
     wire [`OPERATION_BUS ] rs_alu_op;
@@ -97,7 +96,7 @@ module cpu(
         .in_fetcher_ena(fetcher_pc_ena),
 
         .in_last_pc(fetcher_out_pc), .in_last_inst(fetcher_inst),
-        .out_next_pc(pc_fetcher_next_pc),
+        .out_next_pc(pc_fetcher_next_pc),.out_next_taken(pc_fetcher_next_taken),
 
         .in_misbranch(rob_pc_misbranch), .in_forwarding_branch_taken(rob_pc_taken),
         .in_forwarding_branch_pc(rob_pc_branch_pc), .in_forwarding_correct_address(rob_pc_correct_jump_addr),
@@ -142,23 +141,21 @@ module cpu(
         .in_query_ready_value1(rob_decode_value1), .in_query_ready_value2(rob_decode_value2),
 
         .out_rs_imm(decode_rs_imm),
-        .out_rs_op(decode_out_op),
+        .out_rs_op(decode_rs_op),
         .out_operand1(decode_rs_operand1), .out_operand2(decode_rs_operand2),
-        .out_tag1(decode_rs_tag1), .out_tag2(decode_rs_tag2), .out_current_pc(decode_out_current_pc),
+        .out_tag1(decode_rs_tag1), .out_tag2(decode_rs_tag2),
+        .out_lsqueue_ena(decode_ls_ena),.out_rd_rob_tag(decode_out_rob),
 
-        .out_lsqueue_ena(decode_ls_ena), .out_lsqueue_op(decode_ls_op), .out_rd_rob_tag(decode_out_rob), .out_rob_pc(decode_out_current_pc),
+        .out_reg_rd(decode_out_reg_rd), .out_predicted_taken(decode_rob_taken),
 
-        .out_rob_inst(decode_rob_inst), .out_reg_rd(decode_out_reg_rd),
-        .out_predicted_taken(decode_rob_taken),
-
-        .out_assign_ena(decode_out_assign_ena)
+        .out_assign_ena(decode_out_assign_ena), .out_current_pc(decode_out_current_pc),.out_inst(decode_out_inst)
     );
 
     reservation resevation_stage(
         .clk(clk_in), .rst(pc_rollback | rst_in), .ena(rdy_in),
 
         .assignment_ena(decode_out_assign_ena), .in_imm(decode_rs_imm),
-        .in_op(decode_out_op), .in_Qj(decode_rs_tag1), .in_Qk(decode_rs_tag2),
+        .in_op(decode_rs_op), .in_Qj(decode_rs_tag1), .in_Qk(decode_rs_tag2),
         .in_Vj(decode_rs_operand1), .in_Vk(decode_rs_operand2),
         .in_pc(decode_out_current_pc), .in_rd_rob(decode_out_rob),
 
@@ -195,7 +192,7 @@ module cpu(
         .in_ls_cdb_rob_tag(ls_cdb_rob_tag), .in_ls_cdb_value(ls_cdb_val),
 
         .in_assignment_ena(decode_out_assign_ena),
-        .in_inst(decode_rob_inst), .in_dest(decode_out_reg_rd), .in_pc(decode_out_current_pc),
+        .in_inst(decode_out_inst), .in_dest(decode_out_reg_rd), .in_pc(decode_out_current_pc),
 
         .in_predicted_taken(decode_rob_taken),
 
@@ -254,7 +251,7 @@ module cpu(
         .in_rollback(pc_rollback),
 
         .in_enqueue_ena(decode_ls_ena), .in_enqueue_rob_tag(decode_out_rob),
-        .in_op(decode_ls_op),
+        .in_inst(decode_out_inst),
 
         .in_address(alu_cdb_out), .in_issue_rob_tag(alu_cdb_rob_tag),
         .in_data(alu_ls_data),
@@ -268,4 +265,4 @@ module cpu(
         .out_mem_ena(ls_mem_ena), .out_mem_iswrite(ls_mem_iswrite), .out_mem_size(ls_mem_size)
     );
 
-endmodule : cpu
+endmodule

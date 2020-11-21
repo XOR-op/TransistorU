@@ -5,9 +5,9 @@ module regFile(
     input in_rollback,
     // decoder read value
     input [`REG_WIDTH ] read1, input [`REG_WIDTH ] read2,
-    output reg [`DATA_WIDTH ] value1, output reg [`DATA_WIDTH ] value2,
-    output reg [`ROB_WIDTH ] rob_tag1, output reg [`ROB_WIDTH ] rob_tag2,
-    output reg busy1, output reg busy2,
+    output [`DATA_WIDTH ] value1, output [`DATA_WIDTH ] value2,
+    output [`ROB_WIDTH ] rob_tag1, output [`ROB_WIDTH ] rob_tag2,
+    output busy1, output busy2,
     // set rd's rob_tag by decoder
     input in_assignment_ena,
     input [`REG_WIDTH ] in_occupied_reg, input [`ROB_WIDTH ] in_occupied_rob_tag,
@@ -36,7 +36,7 @@ module regFile(
                     rob_tags[regi] <= `ZERO_ROB;
                     busy[regi] <= `FALSE;
                 end else if (in_rollback) begin
-                    rob_tags[regi]<=`ZERO_ROB ;
+                    rob_tags[regi] <= `ZERO_ROB;
                     busy[regi] <= `FALSE;
                 end else if (ena) begin
                     if (in_rob_reg_index == regi) begin
@@ -48,7 +48,7 @@ module regFile(
                             busy[regi] <= `FALSE;
                         end
                     end
-                    if (in_assignment_ena&&in_occupied_reg == regi) begin
+                    if (in_assignment_ena && in_occupied_reg == regi) begin
                         rob_tags[regi] <= in_occupied_rob_tag;
                         busy[regi] <= `TRUE;
                     end
@@ -56,14 +56,12 @@ module regFile(
             end
         end
     endgenerate
-    always @(*) begin
-        // for reg0 is always 0, read1 and read2 are always available
-        value1 = datas[read1];
-        value2 = datas[read2];
-        rob_tag1 = rob_tags[read1];
-        rob_tag2 = rob_tags[read2];
-        busy1 = busy[read1];
-        busy2 = busy[read2];
-    end
+    // for reg0 is always 0, read1 and read2 are always available
+    assign value1 = datas[read1];
+    assign value2 = datas[read2];
+    assign rob_tag1 = rob_tags[read1];
+    assign rob_tag2 = rob_tags[read2];
+    assign busy1 = busy[read1];
+    assign busy2 = busy[read2];
 
-endmodule: regFile
+endmodule

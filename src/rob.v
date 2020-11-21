@@ -18,8 +18,8 @@ module ROB(
     // ROB ready from decoder
     input [`ROB_WIDTH ] in_query_tag1, input [`ROB_WIDTH ] in_query_tag2,
     // return to decoder
-    output reg [`DATA_WIDTH ] out_back_value1, output reg [`DATA_WIDTH ] out_back_value2,
-    output reg out_back_ready1, output reg out_back_ready2,
+    output [`DATA_WIDTH ] out_back_value1, output [`DATA_WIDTH ] out_back_value2,
+    output out_back_ready1, output out_back_ready2,
     output [`ROB_WIDTH ] out_rob_available_tag,
     // commit to LSqueue for store
     output reg [`ROB_WIDTH ] out_committed_rob_tag,
@@ -30,7 +30,7 @@ module ROB(
     output reg [`DATA_WIDTH ] out_correct_jump_addr
 );
 
-    reg [7:0 ] head = 0, tail = 1;
+    reg [7:0] head = 0, tail = 1;
     reg empty;
     // standard robs
     reg [`DATA_WIDTH ] data_arr [`ROB_SIZE :0];
@@ -43,23 +43,21 @@ module ROB(
     reg jump_flag_arr [`ROB_SIZE :0];
     reg [`DATA_WIDTH ] jump_addr_arr [`ROB_SIZE :0];
 
-    assign out_rob_available_tag = (empty||(head!=tail))?tail:`ZERO_ROB ;
+    assign out_rob_available_tag = (empty || (head != tail)) ? tail:`ZERO_ROB;
     // decoder read
-    always @(*) begin
-        out_back_ready1 = ready_arr[in_query_tag1];
-        out_back_value1 = data_arr[in_query_tag1];
-        out_back_ready2 = ready_arr[in_query_tag2];
-        out_back_value2 = data_arr[in_query_tag2];
-    end
+    assign out_back_ready1 = ready_arr[in_query_tag1];
+    assign out_back_value1 = data_arr[in_query_tag1];
+    assign out_back_ready2 = ready_arr[in_query_tag2];
+    assign out_back_value2 = data_arr[in_query_tag2];
     always @(posedge clk) begin
         out_misbranch <= `FALSE;
         out_correct_jump_addr <= `ZERO_DATA;
         out_forwarding_ena <= `FALSE;
-        out_committed_rob_tag<=`ZERO_ROB ;
+        out_committed_rob_tag <= `ZERO_ROB;
         if (rst) begin
-            empty <=`TRUE   ;
-            head<=1;
-            tail<=1;
+            empty <= `TRUE;
+            head <= 1;
+            tail <= 1;
             ready_arr[`ZERO_ROB ] <= `FALSE;
             data_arr[`ZERO_ROB ] <= `ZERO_DATA;
         end else if (ena) begin
@@ -71,31 +69,34 @@ module ROB(
                 pc_arr[tail] <= in_pc;
                 tail <= tail == `ROB_SIZE ? 1:tail+1;
                 predicted_taken[tail] <= in_predicted_taken;
-                empty <=`FALSE   ;
+                empty <= `FALSE;
             end
             // update
-            if (in_cdb_rob_tag != `ZERO_ROB) begin
+            if (in_cdb_rob_tag != `ZERO_ROB && inst_arr[in_cdb_rob_tag][`OP_RANGE ] != `LOAD_OP) begin
                 data_arr[in_cdb_rob_tag] <= in_cdb_value;
                 ready_arr[in_cdb_rob_tag] <= `TRUE;
                 jump_flag_arr[in_cdb_rob_tag] <= in_cdb_isjump;
                 jump_addr_arr[in_cdb_rob_tag] <= in_cdb_jump_addr;
             end
             if (in_ls_cdb_rob_tag != `ZERO_ROB) begin
+                // load
                 data_arr[in_ls_cdb_rob_tag] <= in_ls_cdb_value;
                 ready_arr[in_ls_cdb_rob_tag] <= `TRUE;
             end
 
             // commit
-            if (!empty &ready_arr[head]) begin
+            if (!empty & ready_arr[head]) begin
                 // work state
                 if (inst_arr[head][`OP_RANGE ] == `BRANCH_OP) begin
                     out_forwarding_ena <= `TRUE;
                     if (jump_flag_arr[head] ^ predicted_taken[head]) begin
                         // branch mispredicted
                         out_misbranch <= `TRUE;
-                        out_correct_jump_addr <= data_arr[head];
+                        out_correct_jump_addr <= jump_addr_arr[head];
+                        out_forwarding_taken <= jump_flag_arr[head];
                     end
                 end else if (inst_arr[head][`OP_RANGE ] == `JALR_OP) begin
+                    out_forwarding_taken <= `TRUE;
                     out_forwarding_ena <= `TRUE;
                     out_misbranch <= `TRUE;
                     out_correct_jump_addr <= jump_addr_arr[head];
@@ -112,10 +113,10 @@ module ROB(
                     out_reg_value <= data_arr[head];
                 end
                 // update head
-                if((head+1==tail)||(head==`RS_SIZE &&tail==1))
-                    empty <=`TRUE  ;
-                head<=(head==`RS_SIZE )?1:head+1;
-                ready_arr[head]<=`FALSE ;
+                if ((head+1 == tail) || (head == `RS_SIZE && tail == 1))
+                    empty <= `TRUE;
+                head <= (head == `RS_SIZE) ? 1:head+1;
+                ready_arr[head] <= `FALSE;
             end else begin
                 // avoid latch
                 out_reg_reg <= `ZERO_ROB;
@@ -124,5 +125,5 @@ module ROB(
 
         end
     end
-endmodule : ROB
+endmodule
 

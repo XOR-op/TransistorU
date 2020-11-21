@@ -50,22 +50,27 @@ module alu(
             jump_ena = `TRUE; end
         `BEQ: begin
             out = A == B;
-            jump_addr = pc+out ? imm:4;
+            jump_addr = pc+(out ? imm:4);
             jump_ena = out; end
-        `BNE: begin out = A != B;
-            jump_addr = pc+out ? imm:4;
+        `BNE: begin
+            out = A != B;
+            jump_addr = pc+(out ? imm:4);
             jump_ena = out; end
-        `BLT: begin out = $signed(A) < $signed(B);
-            jump_addr = pc+out ? imm:4;
+        `BLT: begin
+            out = $signed(A) < $signed(B);
+            jump_addr = pc+(out ? imm:4);
             jump_ena = out; end
-        `BGE: begin out = $signed(A) >= $signed(B);
-            jump_addr = pc+out ? imm:4;
+        `BGE: begin
+            out = $signed(A) >= $signed(B);
+            jump_addr = pc+(out ? imm:4);
             jump_ena = out; end
-        `BLTU: begin out = A < B;
-            jump_addr = pc+out ? imm:4;
+        `BLTU: begin
+            out = A < B;
+            jump_addr = pc+(out ? imm:4);
             jump_ena = out; end
-        `BGEU: begin out = A >= B;
-            jump_addr = pc+out ? imm:4;
+        `BGEU: begin
+            out = A >= B;
+            jump_addr = pc+(out ? imm:4);
             jump_ena = out; end
         `LW: begin out = A+imm; end
         `LHU: begin out = A+imm; end
@@ -79,7 +84,6 @@ module alu(
                 out = `ZERO_DATA;
                 out_rob_tag = `ZERO_DATA; end
         endcase
-
     end
-endmodule : alu
+endmodule
 

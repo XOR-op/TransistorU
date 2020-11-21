@@ -36,21 +36,21 @@ module reservation(
     wire [`RS_WIDTH ] free_rs_tag;
     wire ready_to_issue [`RS_SIZE :1];
     wire [`RS_WIDTH ] what_to_issue;
-    assign has_capacity = free_rs_tag!=`ZERO_RS ;
+    assign has_capacity = free_rs_tag != `ZERO_RS;
 
     // broadcast
     integer ii;
     always @(posedge clk) begin
         if (rst) begin
-            op[`ZERO_RS ]<=`NOP ;
-            PCs[`ZERO_RS ]<=`ZERO_DATA ;
+            op[`ZERO_RS ] <= `NOP;
+            PCs[`ZERO_RS ] <= `ZERO_DATA;
             for (ii = 0; ii <= `RS_SIZE;ii = ii+1)
                 busy[ii] <= `FALSE;
         end
     end
     generate
         genvar i;
-        for (i = 0;i <= `RS_SIZE;i = i+1) begin : broadcast_update
+        for (i = 0;i <= `RS_SIZE;i = i+1) begin
             always @(posedge clk) begin
                 if (~rst && ena && Qj[i] == in_alu_cdb_rob_tag) begin
                     Qj[i] <= `ZERO_ROB;
@@ -69,15 +69,17 @@ module reservation(
                     Vk[i] <= in_ls_cdb_data;
                 end
             end
-        end : broadcast_update
+        end
     endgenerate
     // assignment
     always @(posedge clk) begin
         if (~rst && ena && assignment_ena) begin
             // assignment
             op[free_rs_tag] <= in_op;
-            {Qj[free_rs_tag], Qk[free_rs_tag]} <= {in_Qj, in_Qk};
-            {Vj[free_rs_tag], Vk[free_rs_tag]} <= {in_Vj, in_Vk};
+            Qj[free_rs_tag] <= (in_Qj == in_alu_cdb_rob_tag) ?`ZERO_ROB :(in_Qj == in_ls_cdb_rob_tag ?`ZERO_ROB :in_Qj);
+            Qk[free_rs_tag] <= (in_Qk == in_alu_cdb_rob_tag) ?`ZERO_ROB :(in_Qk == in_ls_cdb_rob_tag ?`ZERO_ROB :in_Qk);
+            Vj[free_rs_tag] <= (in_Qj == `ZERO_ROB) ? in_Vj:((in_Qj == in_alu_cdb_rob_tag) ? in_alu_cdb_data:(in_Qj == in_ls_cdb_rob_tag ? in_ls_cdb_data:in_Vj));
+            Vk[free_rs_tag] <= (in_Qk == `ZERO_ROB) ? in_Vk:((in_Qk == in_alu_cdb_rob_tag) ? in_alu_cdb_data:(in_Qk == in_ls_cdb_rob_tag ? in_ls_cdb_data:in_Vk));
             busy[free_rs_tag] <= `TRUE;
             PCs[free_rs_tag] <= in_pc;
             imms[free_rs_tag] <= in_imm;
@@ -93,22 +95,22 @@ module reservation(
     endgenerate
 
     // priority encoder-like
-    assign free_rs_tag=~busy[1]?1:
-        ~busy[2]?2:
-            ~busy[3]?3:
-                ~busy[4]?4:
-                    ~busy[5]?5:
-                        ~busy[6]?6:
-                            ~busy[7]?7:
-                                ~busy[8]?8:
-                                    ~busy[9]?9:
-                                        ~busy[10]?10:
-                                            ~busy[11]?11:
-                                                ~busy[12]?12:
-                                                    ~busy[13]?13:
-                                                        ~busy[14]?14:
-                                                            ~busy[15]?15:
-                                                                `ZERO_RS ;
+    assign free_rs_tag = ~busy[1] ? 1:
+        ~busy[2] ? 2:
+            ~busy[3] ? 3:
+                ~busy[4] ? 4:
+                    ~busy[5] ? 5:
+                        ~busy[6] ? 6:
+                            ~busy[7] ? 7:
+                                ~busy[8] ? 8:
+                                    ~busy[9] ? 9:
+                                        ~busy[10] ? 10:
+                                            ~busy[11] ? 11:
+                                                ~busy[12] ? 12:
+                                                    ~busy[13] ? 13:
+                                                        ~busy[14] ? 14:
+                                                            ~busy[15] ? 15:
+                                                            `ZERO_RS;
     always @(posedge clk) begin
         // issue to alu
         if (~rst && ena) begin
@@ -126,21 +128,21 @@ module reservation(
     end
 
 
-    assign what_to_issue=ready_to_issue[1]?1:
-        ready_to_issue[2]?2:
-            ready_to_issue[3]?3:
-                ready_to_issue[4]?4:
-                    ready_to_issue[5]?5:
-                        ready_to_issue[6]?6:
-                            ready_to_issue[7]?7:
-                                ready_to_issue[8]?8:
-                                    ready_to_issue[9]?9:
-                                        ready_to_issue[10]?10:
-                                            ready_to_issue[11]?11:
-                                                ready_to_issue[12]?12:
-                                                    ready_to_issue[13]?13:
-                                                        ready_to_issue[14]?14:
-                                                            ready_to_issue[15]?15:
-                                                                `ZERO_RS ;
-endmodule : reservation
+    assign what_to_issue = ready_to_issue[1] ? 1:
+        ready_to_issue[2] ? 2:
+            ready_to_issue[3] ? 3:
+                ready_to_issue[4] ? 4:
+                    ready_to_issue[5] ? 5:
+                        ready_to_issue[6] ? 6:
+                            ready_to_issue[7] ? 7:
+                                ready_to_issue[8] ? 8:
+                                    ready_to_issue[9] ? 9:
+                                        ready_to_issue[10] ? 10:
+                                            ready_to_issue[11] ? 11:
+                                                ready_to_issue[12] ? 12:
+                                                    ready_to_issue[13] ? 13:
+                                                        ready_to_issue[14] ? 14:
+                                                            ready_to_issue[15] ? 15:
+                                                            `ZERO_RS;
+endmodule
 

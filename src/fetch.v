@@ -56,4 +56,4 @@ module fetcher(
             out_address <= in_pc;
         end
     end
-endmodule : fetcher
+endmodule

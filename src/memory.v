@@ -65,29 +65,29 @@ module memory(
                     if (in_ls_iswrite) begin
                         // write
                         if (in_ls_iswrite) begin
-                            stop_stage <= in_ls_size-1;
+                            stop_stage <= in_ls_size;
                             buffered_addr <= in_ls_addr+1;
                             buffered_data <= in_ls_data;
                             out_ram_data <= in_ls_data[7:0];
                             out_ram_addr <= in_ls_addr;
                         end else begin
-                            stop_stage <= reg_ls_size-1;
+                            stop_stage <= reg_ls_size;
                             buffered_addr <= reg_ls_addr+1;
                             buffered_data <= reg_ls_data;
                             out_ram_data <= reg_ls_data[7:0];
                             out_ram_addr <= reg_ls_addr;
                         end
                         out_ram_rd_wt_flag <= `RAM_WT;
-                        cur_stage <= 3'b01;
+                        cur_stage <= 3'b001;
                         status <= LS_WRITE;
                     end else begin
                         // read
                         if (in_ls_iswrite) begin
-                            stop_stage <= in_ls_size-1;
+                            stop_stage <= in_ls_size;
                             buffered_addr <= in_ls_addr+1;
                             out_ram_addr <= in_ls_addr;
                         end else begin
-                            stop_stage <= reg_ls_size-1;
+                            stop_stage <= reg_ls_size;
                             buffered_addr <= reg_ls_addr+1;
                             out_ram_addr <= reg_ls_addr;
                         end
@@ -153,12 +153,14 @@ module memory(
                         // write data
                         case (cur_stage)
                             // one clock ahead
-                            3'b01: out_ram_data <= buffered_data[15:8];
-                            3'b10: out_ram_data <= buffered_data[23:15];
-                            3'b11: out_ram_data <= buffered_data[31:24];
+                            3'b001: out_ram_data <= buffered_data[15:8];
+                            3'b010: out_ram_data <= buffered_data[23:15];
+                            3'b011: out_ram_data <= buffered_data[31:24];
+                            default : out_ram_data<=`ZERO_DATA ;
                         endcase
                         if (cur_stage == stop_stage) begin
                             // finish
+                            out_ram_rd_wt_flag<=`RAM_RD ;
                             out_ls_ok <= `TRUE;
                             status <= IDLE;
                             reg_ls_ena <= `FALSE;
@@ -170,4 +172,4 @@ module memory(
     end
 
 
-endmodule : memory
+endmodule

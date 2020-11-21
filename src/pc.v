@@ -13,6 +13,7 @@ module pc(
     output reg out_rollback
 );
     // 2-bit saturating counter now
+    // now always not taken for debug propose
     reg [1:0] prediction_table [`PREDICTION_SLOT_SIZE -1:0];
     wire [`DATA_WIDTH ] J_IMM = {{12{in_last_inst[31]}}, in_last_inst[19:12], in_last_inst[20], in_last_inst[30:25], in_last_inst[24:21], 1'b0},
                         B_IMM = {{20{in_last_inst[31]}}, in_last_inst[7], in_last_inst[30:25], in_last_inst[11:8], 1'b0};
@@ -43,8 +44,8 @@ module pc(
                 out_next_pc <= in_last_pc+4;
             end
         end
-        `ELEMENT <= `ELEMENT +in_forwarding_branch_taken ?
-            ((`ELEMENT == 2'b11) ? 0:1):(((`ELEMENT == 2'b00) ? 0: -1));
+        // `ELEMENT <= `ELEMENT +in_forwarding_branch_taken ?
+        //     ((`ELEMENT == 2'b11) ? 0:1):(((`ELEMENT == 2'b00) ? 0: -1));
     end
 
 endmodule : pc

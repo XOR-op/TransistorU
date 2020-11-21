@@ -5,7 +5,7 @@ module LSqueue(
     input in_rollback,
     // input instruction
     input in_enqueue_ena, input [`ROB_WIDTH ] in_enqueue_rob_tag,
-    input [`INSTRUCTION_WIDTH ] in_op,
+    input [`INSTRUCTION_WIDTH ] in_inst,
     // input address and data
     input [`DATA_WIDTH ] in_address, input [`DATA_WIDTH] in_data,
     input [`ROB_WIDTH ] in_issue_rob_tag,
@@ -19,7 +19,7 @@ module LSqueue(
     output reg out_mem_ena, output reg out_mem_iswrite, output reg [2:0] out_mem_size
 );
     reg [`ROB_WIDTH ] buffered_rob_tag [`ROB_SIZE :1];
-    reg [`INSTRUCTION_WIDTH] buffered_op [`ROB_SIZE :1];
+    reg [`INSTRUCTION_WIDTH] buffered_inst [`ROB_SIZE :1];
     reg [`DATA_WIDTH ] buffered_address [`ROB_SIZE :1];
     reg [`DATA_WIDTH ] buffered_data [`ROB_SIZE :1];
     reg buffered_valid [`ROB_SIZE :1];
@@ -55,7 +55,7 @@ module LSqueue(
         end else if (ena) begin
             if (in_enqueue_ena) begin
                 buffered_rob_tag[tail] <= in_enqueue_rob_tag;
-                buffered_op[tail] <= in_op;
+                buffered_inst[tail] <= in_inst;
                 buffered_valid[tail] <= `FALSE;
                 committed[tail] <= `FALSE;
                 tail <= tail == `ROB_SIZE ? 1:tail+1;
@@ -73,14 +73,14 @@ module LSqueue(
                 end
                 if (in_commit_rob == buffered_rob_tag[i]) begin
                     committed[i] <= `TRUE;
-                    if (buffered_op[i][`OP_RANGE ] == `STORE_OP) begin
+                    if (buffered_inst[i][`OP_RANGE ] == `STORE_OP) begin
                         last_store <= i;
                     end
                 end
             end
             // try to issue LOAD&STORE
             if (busy_stat == IDLE) begin
-                if (head != 0 && buffered_valid[head] && (buffered_op[head][`OP_RANGE ] == `LOAD_OP || committed[head])) begin
+                if (head != 0 && buffered_valid[head] && (buffered_inst[head][`OP_RANGE ] == `LOAD_OP || committed[head])) begin
                     out_mem_ena <= `TRUE;
                     pending_rob <= buffered_rob_tag[head];
                     // update head
@@ -90,11 +90,11 @@ module LSqueue(
                     end else begin
                         head <= (head == `ROB_SIZE) ? 1:head+1;
                     end
-                    if (buffered_op[head][`OP_RANGE ] == `LOAD_OP) begin
+                    if (buffered_inst[head][`OP_RANGE ] == `LOAD_OP) begin
                         out_mem_iswrite <= `FALSE;
                         out_mem_write_data <= `ZERO_DATA;
                         out_mem_addr <= buffered_address[head];
-                        case (buffered_op[head][14:12])
+                        case (buffered_inst[head][14:12])
                             3'b000: begin
                                 busy_stat <= LB;
                                 out_mem_size <= 1;
@@ -114,7 +114,7 @@ module LSqueue(
                         out_mem_write_data <= buffered_data[head];
                         out_mem_addr <= buffered_address[head];
                         busy_stat <= STORE;
-                        case (buffered_op[head][14:12])
+                        case (buffered_inst[head][14:12])
                             3'b000: begin
                                 out_mem_size <= 1;
                             end
@@ -146,4 +146,4 @@ module LSqueue(
         end
 
     end
-endmodule : LSqueue
+endmodule
