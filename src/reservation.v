@@ -11,7 +11,7 @@ module reservation(
     input [`DATA_WIDTH ] in_pc,
     input [`ROB_WIDTH ] in_rd_rob,
     // CDB broadcast
-    input [`ROB_WIDTH ] in_alu_cdb_rob_tag, input [`DATA_WIDTH ] in_alu_cdb_data,
+    input [`ROB_WIDTH ] in_alu_cdb_rob_tag, input [`DATA_WIDTH ] in_alu_cdb_data,input in_alu_cdb_isload,
     input [`ROB_WIDTH ] in_ls_cdb_rob_tag, input [`DATA_WIDTH ] in_ls_cdb_data,
     // pass to alu
     output reg [`OPERATION_BUS ] out_op,
@@ -34,63 +34,70 @@ module reservation(
     reg [`DATA_WIDTH ] imms [`RS_SIZE :0];
     // control variable
     wire [`RS_WIDTH ] free_rs_tag;
-    wire ready_to_issue [`RS_SIZE :1];
     wire [`RS_WIDTH ] what_to_issue;
+    wire ready_to_issue [`RS_SIZE :1];
     assign has_capacity = free_rs_tag != `ZERO_RS;
 
-    // broadcast
-    integer ii;
+    integer i;
+
+    // assignment
     always @(posedge clk) begin
+        // issue to alu
         if (rst) begin
             op[`ZERO_RS ] <= `NOP;
             PCs[`ZERO_RS ] <= `ZERO_DATA;
-            for (ii = 0; ii <= `RS_SIZE;ii = ii+1)
-                busy[ii] <= `FALSE;
-        end
-    end
-    generate
-        genvar i;
-        for (i = 0;i <= `RS_SIZE;i = i+1) begin
-            always @(posedge clk) begin
-                if (~rst && ena && Qj[i] == in_alu_cdb_rob_tag) begin
+            for (i = 0; i <= `RS_SIZE;i = i+1)
+                busy[i] <= `FALSE;
+        end else if (ena) begin
+            // when what_to_issue =0, op==NOP
+            out_op <= op[what_to_issue];
+            out_Vk <= Vk[what_to_issue];
+            out_Vj <= Vj[what_to_issue];
+            out_rob_tag <= rob_tag[what_to_issue];
+            out_pc <= PCs[what_to_issue];
+            out_imm <= imms[what_to_issue];
+            if (what_to_issue != `ZERO_RS) begin
+                busy[what_to_issue] <= `FALSE;
+            end
+            // broadcast
+            for (i = 1; i <= `RS_SIZE;i = i+1) begin
+                if (Qj[i] != `ZERO_ROB && Qj[i] == in_alu_cdb_rob_tag&&!in_alu_cdb_isload) begin
                     Qj[i] <= `ZERO_ROB;
                     Vj[i] <= in_alu_cdb_data;
                 end
-                if (~rst && ena && Qk[i] == in_alu_cdb_rob_tag) begin
+                if (Qk[i] != `ZERO_ROB && Qk[i] == in_alu_cdb_rob_tag&&!in_alu_cdb_isload) begin
                     Qk[i] <= `ZERO_ROB;
                     Vk[i] <= in_alu_cdb_data;
                 end
-                if (~rst && ena && Qj[i] == in_ls_cdb_rob_tag) begin
+                if (Qj[i] != `ZERO_ROB && Qj[i] == in_ls_cdb_rob_tag) begin
                     Qj[i] <= `ZERO_ROB;
                     Vj[i] <= in_ls_cdb_data;
                 end
-                if (~rst && ena && Qk[i] == in_ls_cdb_rob_tag) begin
+                if (Qk[i] != `ZERO_ROB && Qk[i] == in_ls_cdb_rob_tag) begin
                     Qk[i] <= `ZERO_ROB;
                     Vk[i] <= in_ls_cdb_data;
                 end
             end
-        end
-    endgenerate
-    // assignment
-    always @(posedge clk) begin
-        if (~rst && ena && assignment_ena) begin
-            // assignment
-            op[free_rs_tag] <= in_op;
-            Qj[free_rs_tag] <= (in_Qj == in_alu_cdb_rob_tag) ?`ZERO_ROB :(in_Qj == in_ls_cdb_rob_tag ?`ZERO_ROB :in_Qj);
-            Qk[free_rs_tag] <= (in_Qk == in_alu_cdb_rob_tag) ?`ZERO_ROB :(in_Qk == in_ls_cdb_rob_tag ?`ZERO_ROB :in_Qk);
-            Vj[free_rs_tag] <= (in_Qj == `ZERO_ROB) ? in_Vj:((in_Qj == in_alu_cdb_rob_tag) ? in_alu_cdb_data:(in_Qj == in_ls_cdb_rob_tag ? in_ls_cdb_data:in_Vj));
-            Vk[free_rs_tag] <= (in_Qk == `ZERO_ROB) ? in_Vk:((in_Qk == in_alu_cdb_rob_tag) ? in_alu_cdb_data:(in_Qk == in_ls_cdb_rob_tag ? in_ls_cdb_data:in_Vk));
-            busy[free_rs_tag] <= `TRUE;
-            PCs[free_rs_tag] <= in_pc;
-            imms[free_rs_tag] <= in_imm;
-            rob_tag[free_rs_tag] <= in_rd_rob;
+            if (assignment_ena) begin
+                // assignment
+                op[free_rs_tag] <= in_op;
+                Qj[free_rs_tag] <= (in_Qj == in_alu_cdb_rob_tag&&!in_alu_cdb_isload) ?`ZERO_ROB :(in_Qj == in_ls_cdb_rob_tag ?`ZERO_ROB :in_Qj);
+                Qk[free_rs_tag] <= (in_Qk == in_alu_cdb_rob_tag&&!in_alu_cdb_isload) ?`ZERO_ROB :(in_Qk == in_ls_cdb_rob_tag ?`ZERO_ROB :in_Qk);
+                Vj[free_rs_tag] <= (in_Qj == `ZERO_ROB) ? in_Vj:((in_Qj == in_alu_cdb_rob_tag&&!in_alu_cdb_isload) ? in_alu_cdb_data:(in_Qj == in_ls_cdb_rob_tag ? in_ls_cdb_data:in_Vj));
+                Vk[free_rs_tag] <= (in_Qk == `ZERO_ROB) ? in_Vk:((in_Qk == in_alu_cdb_rob_tag&&!in_alu_cdb_isload) ? in_alu_cdb_data:(in_Qk == in_ls_cdb_rob_tag ? in_ls_cdb_data:in_Vk));
+                busy[free_rs_tag] <= `TRUE;
+                PCs[free_rs_tag] <= in_pc;
+                imms[free_rs_tag] <= in_imm;
+                rob_tag[free_rs_tag] <= in_rd_rob;
+            end
         end
     end
 
     // choose op to ALU
     generate
-        for (i = 1;i <= `RS_SIZE;i = i+1) begin : gen_ready_sig
-            assign ready_to_issue[i] = busy[i] &(Qj[i] == `ZERO_ROB) &(Qk[i] == `ZERO_ROB);
+        genvar ii;
+        for (ii = 1;ii <= `RS_SIZE;ii = ii+1) begin : gen_ready_sig
+            assign ready_to_issue[ii] = busy[ii] &(Qj[ii] == `ZERO_ROB) &(Qk[ii] == `ZERO_ROB);
         end
     endgenerate
 
@@ -111,22 +118,6 @@ module reservation(
                                                         ~busy[14] ? 14:
                                                             ~busy[15] ? 15:
                                                             `ZERO_RS;
-    always @(posedge clk) begin
-        // issue to alu
-        if (~rst && ena) begin
-            // when what_to_issue =0, op==NOP
-            out_op <= op[what_to_issue];
-            out_Vk <= Vk[what_to_issue];
-            out_Vj <= Vj[what_to_issue];
-            out_rob_tag <= rob_tag[what_to_issue];
-            out_pc <= PCs[what_to_issue];
-            out_imm <= imms[what_to_issue];
-            if (what_to_issue != `ZERO_RS) begin
-                busy[what_to_issue] <= `FALSE;
-            end
-        end
-    end
-
 
     assign what_to_issue = ready_to_issue[1] ? 1:
         ready_to_issue[2] ? 2:
@@ -144,5 +135,5 @@ module reservation(
                                                         ready_to_issue[14] ? 14:
                                                             ready_to_issue[15] ? 15:
                                                             `ZERO_RS;
-endmodule
+endmodule : reservation
 

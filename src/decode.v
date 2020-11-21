@@ -13,7 +13,7 @@ module decode(
     // from ROB of sequential logic than pass to next
     input [`ROB_WIDTH ] in_rob_tobe_tag,
     // to ROB query
-    output  [`ROB_WIDTH ] out_query_tag1, output  [`ROB_WIDTH ] out_query_tag2,
+    output [`ROB_WIDTH ] out_query_tag1, output [`ROB_WIDTH ] out_query_tag2,
     // query result from ROB
     input in_query_tag1_ready, input in_query_tag2_ready,
     input [`DATA_WIDTH ] in_query_ready_value1, input [`DATA_WIDTH ] in_query_ready_value2,
@@ -27,7 +27,7 @@ module decode(
     // to ROB assignment
     output reg [`REG_WIDTH ] out_reg_rd, output reg out_predicted_taken,
     // ROB RS Regfile
-    output reg out_assign_ena,output reg [`DATA_WIDTH ] out_current_pc,output reg [`DATA_WIDTH ]out_inst
+    output reg out_assign_ena, output reg [`DATA_WIDTH ] out_current_pc, output reg [`DATA_WIDTH ] out_inst
 );
     wire [`DATA_WIDTH ] I_IMM, S_IMM, U_IMM, B_IMM, J_IMM;
     assign I_IMM = {{21{in_inst[31]}}, in_inst[30:20]},
@@ -36,10 +36,10 @@ module decode(
         U_IMM = {in_inst[31:12], 12'b0},
         J_IMM = {{12{in_inst[31]}}, in_inst[19:12], in_inst[20], in_inst[30:25], in_inst[24:21], 1'b0};
     // decode
-    assign out_rd_rob_tag=in_rob_tobe_tag;
+    assign out_rd_rob_tag = in_rob_tobe_tag;
     always @(posedge clk) begin
-        out_predicted_taken<=in_predicted_taken;
-        out_current_pc<=in_current_pc;
+        out_predicted_taken <= in_predicted_taken;
+        out_current_pc <= in_current_pc;
         out_inst <= in_inst;
         out_lsqueue_ena <= `FALSE;
         out_assign_ena <= `FALSE;
@@ -142,8 +142,10 @@ module decode(
                         `SLT3 : out_rs_op <= `SLTI;
                         `SLTU3 : out_rs_op <= `SLTIU;
                         `XOR3 : out_rs_op <= `XORI;
-                        `SRLorA3 : out_rs_op <= (in_inst[31:25] == `NORMAL_FUNCT7) ?`SRLI :`SRAI;
-                        `OR3 : out_rs_op <= `ORI;
+                        `SRLorA3 : begin
+                        out_rs_op <= (in_inst[31:25] == `NORMAL_FUNCT7) ?`SRLI :`SRAI;
+                        out_rs_imm <= I_IMM[4:0]; end
+                    `OR3: out_rs_op <= `ORI;
                         `AND3 : out_rs_op <= `ANDI;
                 endcase
                 out_regi1 <= in_inst[`RS1_RANGE ];

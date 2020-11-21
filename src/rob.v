@@ -3,7 +3,7 @@
 module ROB(
     input clk, input rst, input ena,
     // broadcast
-    input [`ROB_WIDTH ] in_cdb_rob_tag, input [`DATA_WIDTH ] in_cdb_value,
+    input [`ROB_WIDTH ] in_cdb_rob_tag, input [`DATA_WIDTH ] in_cdb_value,input in_cdb_isload,
     input in_cdb_isjump, input [`DATA_WIDTH ] in_cdb_jump_addr,
     input [`ROB_WIDTH ] in_ls_cdb_rob_tag, input [`DATA_WIDTH ] in_ls_cdb_value,
     // assignment by decoder
@@ -72,7 +72,7 @@ module ROB(
                 empty <= `FALSE;
             end
             // update
-            if (in_cdb_rob_tag != `ZERO_ROB && inst_arr[in_cdb_rob_tag][`OP_RANGE ] != `LOAD_OP) begin
+            if (in_cdb_rob_tag != `ZERO_ROB && !in_cdb_isload) begin
                 data_arr[in_cdb_rob_tag] <= in_cdb_value;
                 ready_arr[in_cdb_rob_tag] <= `TRUE;
                 jump_flag_arr[in_cdb_rob_tag] <= in_cdb_isjump;

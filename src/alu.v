@@ -8,7 +8,7 @@ module alu(
     input [`DATA_WIDTH ] imm,
     // to rs and rob and LSqueue
     output reg [`DATA_WIDTH ] out, output reg [`ROB_WIDTH ] out_rob_tag,
-    output reg [`DATA_WIDTH ] out_ls_data,
+    output reg [`DATA_WIDTH ] out_ls_data, output reg out_is_load,
     // to rob for jump
     output reg jump_ena, output reg [`DATA_WIDTH ] jump_addr
 );
@@ -17,6 +17,7 @@ module alu(
         out_ls_data = B;
         out_rob_tag = op == `NOP ?`ZERO_ROB :in_rob_tag;
         jump_ena = `FALSE;
+        out_is_load=`FALSE ;
         case (op)
             // a b op
             `NOP : begin out = `ZERO_DATA; end
@@ -72,11 +73,26 @@ module alu(
             out = A >= B;
             jump_addr = pc+(out ? imm:4);
             jump_ena = out; end
-        `LW: begin out = A+imm; end
-        `LHU: begin out = A+imm; end
-        `LH: begin out = A+imm; end
-        `LBU: begin out = A+imm; end
-        `LB: begin out = A+imm; end
+        `LW: begin
+            out = A+imm;
+            out_is_load=`TRUE ;
+        end
+        `LHU: begin
+            out = A+imm;
+            out_is_load=`TRUE ;
+        end
+        `LH: begin
+            out = A+imm;
+            out_is_load=`TRUE ;
+        end
+        `LBU: begin
+            out = A+imm;
+            out_is_load=`TRUE ;
+        end
+        `LB: begin
+            out = A+imm;
+            out_is_load=`TRUE ;
+        end
         `SW: begin out = A+imm; end
         `SH: begin out = A+imm; end
         `SB: begin out = A+imm; end

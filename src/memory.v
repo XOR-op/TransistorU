@@ -64,7 +64,7 @@ module memory(
                 if (in_ls_ena || reg_ls_ena) begin
                     if (in_ls_iswrite) begin
                         // write
-                        if (in_ls_iswrite) begin
+                        if (in_ls_ena) begin
                             stop_stage <= in_ls_size;
                             buffered_addr <= in_ls_addr+1;
                             buffered_data <= in_ls_data;
@@ -82,7 +82,7 @@ module memory(
                         status <= LS_WRITE;
                     end else begin
                         // read
-                        if (in_ls_iswrite) begin
+                        if (in_ls_ena) begin
                             stop_stage <= in_ls_size;
                             buffered_addr <= in_ls_addr+1;
                             out_ram_addr <= in_ls_addr;

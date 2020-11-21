@@ -63,7 +63,7 @@ module cpu(
     // alu
     wire [`DATA_WIDTH ] alu_cdb_out, alu_cdb_jump_addr, alu_ls_data;
     wire [`ROB_WIDTH ] alu_cdb_rob_tag;
-    wire alu_cdb_rob_jump_ena;
+    wire alu_cdb_rob_jump_ena,alu_cdb_isload;
     // rob
     wire [`REG_WIDTH ] rob_reg_rd_reg;
     wire [`ROB_WIDTH ] rob_reg_rd_rob;
@@ -159,7 +159,7 @@ module cpu(
         .in_Vj(decode_rs_operand1), .in_Vk(decode_rs_operand2),
         .in_pc(decode_out_current_pc), .in_rd_rob(decode_out_rob),
 
-        .in_alu_cdb_rob_tag(alu_cdb_rob_tag), .in_alu_cdb_data(alu_cdb_out),
+        .in_alu_cdb_rob_tag(alu_cdb_rob_tag), .in_alu_cdb_data(alu_cdb_out),.in_alu_cdb_isload(alu_cdb_isload),
         .in_ls_cdb_rob_tag(ls_cdb_rob_tag), .in_ls_cdb_data(ls_cdb_val),
 
         .out_op(rs_alu_op),
@@ -179,7 +179,7 @@ module cpu(
         .imm(rs_alu_imm),
 
         .out(alu_cdb_out), .out_rob_tag(alu_cdb_rob_tag),
-        .out_ls_data(alu_ls_data),
+        .out_ls_data(alu_ls_data),.out_is_load(alu_cdb_isload),
 
         .jump_ena(alu_cdb_rob_jump_ena), .jump_addr(alu_cdb_jump_addr)
     );
@@ -187,7 +187,7 @@ module cpu(
     ROB rob_stage(
         .clk(clk_in), .rst(rst_in | pc_rollback), .ena(rdy_in),
 
-        .in_cdb_rob_tag(alu_cdb_rob_tag), .in_cdb_value(alu_cdb_out),
+        .in_cdb_rob_tag(alu_cdb_rob_tag), .in_cdb_value(alu_cdb_out),.in_cdb_isload(alu_cdb_isload),
         .in_cdb_isjump(alu_cdb_rob_jump_ena), .in_cdb_jump_addr(alu_cdb_jump_addr),
         .in_ls_cdb_rob_tag(ls_cdb_rob_tag), .in_ls_cdb_value(ls_cdb_val),
 
