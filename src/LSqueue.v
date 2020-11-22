@@ -47,7 +47,7 @@ module LSqueue(
                 last_store <= 0;
                 busy_stat <= `FALSE;
             end else begin
-                tail <= last_store;
+                tail <= (last_store==`ROB_SIZE )?1:last_store+1;
             end
             // stop loading
             if (busy_stat == LOAD)

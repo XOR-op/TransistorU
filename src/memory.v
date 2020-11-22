@@ -44,7 +44,8 @@ module memory(
         end else if (in_rollback) begin
             if (status != LS_WRITE)
                 status <= IDLE;
-            reg_ls_ena <= `FALSE;
+            if(reg_ls_iswrite!=`RAM_WT )
+                reg_ls_ena <= `FALSE;
             reg_fetch_ena <= `FALSE;
         end else if (ena) begin
             // buffer queries
