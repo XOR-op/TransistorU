@@ -154,7 +154,7 @@ module memory(
                         case (cur_stage)
                             // one clock ahead
                             3'b001: out_ram_data <= buffered_data[15:8];
-                            3'b010: out_ram_data <= buffered_data[23:15];
+                            3'b010: out_ram_data <= buffered_data[23:16];
                             3'b011: out_ram_data <= buffered_data[31:24];
                             default : out_ram_data<=`ZERO_DATA ;
                         endcase

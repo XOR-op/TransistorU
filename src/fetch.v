@@ -12,7 +12,8 @@ module fetcher(
     // from memory
     input in_mem_ready, input [`DATA_WIDTH ] in_mem_inst,
     // from pc reg
-    input [`DATA_WIDTH ] in_pc, input in_result_taken
+    input [`DATA_WIDTH ] in_pc, input in_result_taken,
+    input in_rs_ok, input in_rob_ok
 );
     reg busy;
     // i-cache
@@ -23,7 +24,9 @@ module fetcher(
     assign out_pc_reg_ena = out_decoder_and_pc_ena;
     // i-cache logic
     always @(*) begin
-        out_decoder_and_pc_ena = valid[in_pc[`INDEX_WIDTH ]] && tag[in_pc[`INDEX_WIDTH ]] == in_pc[`TAG_WIDTH ];
+        out_decoder_and_pc_ena =
+            valid[in_pc[`INDEX_WIDTH ]] && tag[in_pc[`INDEX_WIDTH ]] == in_pc[`TAG_WIDTH ]
+                && in_rs_ok && in_rob_ok;
         out_inst = data[in_pc[`INDEX_WIDTH ]];
         out_decoder_pc = in_pc;
         out_branch_taken = in_result_taken;
@@ -43,7 +46,7 @@ module fetcher(
             out_address <= `ZERO_DATA;
         end else if (in_rollback) begin
             // stop reading inst
-            busy<=`FALSE ;
+            busy <= `FALSE;
         end else if (in_mem_ready) begin
             data[in_pc[`INDEX_WIDTH ]] <= in_mem_inst;
             valid[in_pc[`INDEX_WIDTH ]] <= `TRUE;

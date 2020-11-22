@@ -35,15 +35,17 @@ module ROB(
     // standard robs
     reg [`DATA_WIDTH ] data_arr [`ROB_SIZE :0];
     reg ready_arr [`ROB_SIZE :0];
-    reg [`REG_WIDTH ] dest_arr [`ROB_SIZE :0];
-    reg [`DATA_WIDTH ] inst_arr [`ROB_SIZE :0];
+    reg [`REG_WIDTH ] dest_arr [`ROB_SIZE :1];
+    reg [`DATA_WIDTH ] inst_arr [`ROB_SIZE :1];
     // for branch prediction
-    reg [`DATA_WIDTH ] pc_arr [`ROB_SIZE :0];
-    reg predicted_taken [`ROB_SIZE :0];
-    reg jump_flag_arr [`ROB_SIZE :0];
-    reg [`DATA_WIDTH ] jump_addr_arr [`ROB_SIZE :0];
+    reg [`DATA_WIDTH ] pc_arr [`ROB_SIZE :1];
+    reg predicted_taken [`ROB_SIZE :1];
+    reg jump_flag_arr [`ROB_SIZE :1];
+    reg [`DATA_WIDTH ] jump_addr_arr [`ROB_SIZE :1];
 
-    assign out_rob_available_tag = (empty || (head != tail)) ? tail:`ZERO_ROB;
+    // next available
+    assign out_rob_available_tag = (empty || (head!=tail &&!((tail+1 == head)||(tail==`ROB_SIZE &&head==1)))) ? tail:`ZERO_ROB;
+    // assign out_rob_available_tag = (empty || head!=tail) ? tail:`ZERO_ROB;
     // decoder read
     assign out_back_ready1 = ready_arr[in_query_tag1];
     assign out_back_value1 = data_arr[in_query_tag1];
@@ -125,5 +127,5 @@ module ROB(
 
         end
     end
-endmodule
+endmodule : ROB
 

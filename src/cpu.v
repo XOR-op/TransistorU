@@ -59,7 +59,7 @@ module cpu(
     wire [`OPERATION_BUS ] rs_alu_op;
     wire [`DATA_WIDTH ] rs_alu_Vj, rs_alu_Vk, rs_alu_imm, rs_alu_pc;
     wire [`ROB_WIDTH ] rs_alu_rd_rob_tag;
-    wire rs_decoder_ready;
+    wire rs_out_ready;
     // alu
     wire [`DATA_WIDTH ] alu_cdb_out, alu_cdb_jump_addr, alu_ls_data;
     wire [`ROB_WIDTH ] alu_cdb_rob_tag;
@@ -119,11 +119,13 @@ module cpu(
 
         .in_mem_ready(mem_fetcher_ok), .in_mem_inst(mem_fetcher_data),
 
-        .in_pc(pc_fetcher_next_pc), .in_result_taken(pc_fetcher_next_taken)
+        .in_pc(pc_fetcher_next_pc), .in_result_taken(pc_fetcher_next_taken),
+
+        .in_rs_ok(rs_out_ready),.in_rob_ok(rob_out_available_tag!=`ZERO_ROB )
     );
 
     decode decode_stage(
-        .clk(clk_in), .ena(~rst_in & rdy_in & fetcher_decoder_ena & rs_decoder_ready & (rob_out_available_tag != `ZERO_ROB)),
+        .clk(clk_in), .ena(~rst_in && rdy_in && fetcher_decoder_ena ),
         .in_inst(fetcher_inst),
         .in_current_pc(fetcher_out_pc), .in_predicted_taken(fetcher_taken),
 
@@ -167,7 +169,7 @@ module cpu(
         .out_rob_tag(rs_alu_rd_rob_tag), .out_pc(rs_alu_pc),
         .out_imm(rs_alu_imm),
 
-        .has_capacity(rs_decoder_ready)
+        .has_capacity(rs_out_ready)
     );
 
     alu alu_unit(
