@@ -111,7 +111,7 @@ module decode(
                 case (in_inst[14:12])
                     `SB3 : out_rs_op <= `SB;
                         `SH3 : out_rs_op <= `SH;
-                        `SW3 : out_rs_op <= `SH;
+                        `SW3 : out_rs_op <= `SW;
                 endcase
                 out_lsqueue_ena <= `TRUE;
                 out_regi1 <= in_inst[`RS1_RANGE ];

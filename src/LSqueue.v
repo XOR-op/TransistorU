@@ -47,6 +47,7 @@ module LSqueue(
                 last_store <= 0;
                 busy_stat <= `FALSE;
             end else begin
+                // when last_store!=0, all pending inst are stores
                 tail <= (last_store==`ROB_SIZE )?1:last_store+1;
             end
             // stop loading
@@ -62,27 +63,15 @@ module LSqueue(
                 if (head == 0)
                     head <= 1;
             end
-            // broadcast
-            for (i = 1; i <= `ROB_SIZE;i = i+1) begin
-                // Only when rs1 and rs2 are both ready, instructions will be issued to ALU then CDB.
-                // So when it comes to LSqueue, it will be ready immediately.
-                if (in_issue_rob_tag == buffered_rob_tag[i]) begin
-                    buffered_data[i] <= in_data;
-                    buffered_address[i] <= in_address;
-                    buffered_valid[i] <= `TRUE;
-                end
-                if (in_commit_rob == buffered_rob_tag[i]) begin
-                    committed[i] <= `TRUE;
-                    if (buffered_inst[i][`OP_RANGE ] == `STORE_OP) begin
-                        last_store <= i;
-                    end
-                end
-            end
             // try to issue LOAD&STORE
             if (busy_stat == IDLE) begin
-                if (head != 0 && buffered_valid[head] && (buffered_inst[head][`OP_RANGE ] == `LOAD_OP || committed[head])) begin
+                if (head != 0 && buffered_valid[head] &&
+                    (buffered_inst[head][`OP_RANGE ] == `LOAD_OP || committed[head])) begin
                     out_mem_ena <= `TRUE;
                     pending_rob <= buffered_rob_tag[head];
+                    buffered_rob_tag[head]<=`ZERO_ROB ;
+                    buffered_inst[head]<=`ZERO_DATA ;
+                    buffered_valid[head]<=`FALSE ;
                     // update head
                     if (head+1 == tail || (head == `ROB_SIZE && tail == 1)) begin
                         head <= 0;
@@ -141,6 +130,22 @@ module LSqueue(
                             default: out_result <= in_mem_read_data;
                         endcase
                     end
+                end
+            end
+        end
+        // broadcast
+        for (i = 1; i <= `ROB_SIZE;i = i+1) begin
+            // Only when rs1 and rs2 are both ready, instructions will be issued to ALU then CDB.
+            // So when it comes to LSqueue, it will be ready immediately.
+            if (in_issue_rob_tag!=`ZERO_ROB &&in_issue_rob_tag == buffered_rob_tag[i]) begin
+                buffered_data[i] <= in_data;
+                buffered_address[i] <= in_address;
+                buffered_valid[i] <= `TRUE;
+            end
+            if (in_commit_rob!=`ZERO_ROB &&in_commit_rob == buffered_rob_tag[i]) begin
+                committed[i] <= `TRUE;
+                if (buffered_inst[i][`OP_RANGE ] == `STORE_OP) begin
+                    last_store <= i;
                 end
             end
         end
