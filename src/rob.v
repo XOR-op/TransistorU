@@ -119,7 +119,7 @@ module ROB(
                 if ((head+1 == tail) || (head == `RS_SIZE && tail == 1))
                     empty <= `TRUE;
                 head <= (head == `RS_SIZE) ? 1:head+1;
-                ready_arr[head] <= `FALSE;
+                //ready_arr[head] <= `FALSE;// avoid decode query bug
             end else begin
                 // avoid latch
                 out_reg_reg <= `ZERO_ROB;

@@ -34,14 +34,18 @@ module pc(
             out_next_pc <= `ZERO_DATA;
             for (i = 0; i < `PREDICTION_SLOT_SIZE;i = i+1)
                 prediction_table[i] <= 2'b01;
-        end else if (ena && in_fetcher_ena) begin
-            if (in_last_inst[`OP_RANGE ] == `BRANCH_OP) begin
-                // predict
-                out_next_pc <= prediction_table[in_last_pc[`PREDICTION_INDEX_RANGE ]] [1] ? in_last_pc+B_IMM:in_last_pc+4;
-            end else if (in_last_inst[`OP_RANGE ] == `JAL_OP) begin
-                out_next_pc <= in_last_pc+J_IMM;
-            end else begin
-                out_next_pc <= in_last_pc+4;
+        end else if (ena) begin
+            if (in_misbranch) begin
+                out_next_pc <= in_forwarding_correct_address;
+            end else if (in_fetcher_ena) begin
+                if (in_last_inst[`OP_RANGE ] == `BRANCH_OP) begin
+                    // predict
+                    out_next_pc <= prediction_table[in_last_pc[`PREDICTION_INDEX_RANGE ]] [1] ? in_last_pc+B_IMM:in_last_pc+4;
+                end else if (in_last_inst[`OP_RANGE ] == `JAL_OP) begin
+                    out_next_pc <= in_last_pc+J_IMM;
+                end else begin
+                    out_next_pc <= in_last_pc+4;
+                end
             end
         end
         // `ELEMENT <= `ELEMENT +in_forwarding_branch_taken ?
