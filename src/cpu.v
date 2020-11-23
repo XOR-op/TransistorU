@@ -73,6 +73,7 @@ module cpu(
     wire [`ROB_WIDTH ] rob_out_available_tag, rob_ls_committed_tag;
     wire [`DATA_WIDTH ] rob_pc_branch_pc, rob_pc_correct_jump_addr;
     wire rob_pc_misbranch, rob_pc_taken, rob_pc_forwarding_ena;
+    wire rob_out_full;
     // memory
     wire mem_fetcher_ok, mem_ls_ok;
     wire [`DATA_WIDTH ] mem_fetcher_data, mem_ls_data;
@@ -121,7 +122,7 @@ module cpu(
 
         .in_pc(pc_fetcher_next_pc), .in_result_taken(pc_fetcher_next_taken),
 
-        .in_rs_ok(rs_out_ready),.in_rob_ok(rob_out_available_tag!=`ZERO_ROB )
+        .in_rs_ok(rs_out_ready),.in_rob_ok(rob_out_full)
     );
 
     decode decode_stage(
@@ -206,6 +207,7 @@ module cpu(
         .out_back_value1(rob_decode_value1), .out_back_value2(rob_decode_value2),
         .out_back_ready1(rob_decode_rdy1), .out_back_ready2(rob_decode_rdy2),
         .out_rob_available_tag(rob_out_available_tag),
+        .out_rob_full(rob_out_full),
 
         .out_committed_rob_tag(rob_ls_committed_tag),
 
@@ -215,7 +217,6 @@ module cpu(
         .out_correct_jump_addr(rob_pc_correct_jump_addr)
     );
 
-    // todo may bug of clear_all
     memory mem_unit(
         .clk(clk_in), .rst(rst_in), .ena(rdy_in),
         .in_rollback(pc_rollback),

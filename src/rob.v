@@ -21,6 +21,7 @@ module ROB(
     output [`DATA_WIDTH ] out_back_value1, output [`DATA_WIDTH ] out_back_value2,
     output out_back_ready1, output out_back_ready2,
     output [`ROB_WIDTH ] out_rob_available_tag,
+    output out_rob_full,
     // commit to LSqueue for store
     output reg [`ROB_WIDTH ] out_committed_rob_tag,
     // misbranch
@@ -44,8 +45,8 @@ module ROB(
     reg [`DATA_WIDTH ] jump_addr_arr [`ROB_SIZE :1];
 
     // next available
-    assign out_rob_available_tag = (empty || (head!=tail &&!((tail+1 == head)||(tail==`ROB_SIZE &&head==1)))) ? tail:`ZERO_ROB;
-    // assign out_rob_available_tag = (empty || head!=tail) ? tail:`ZERO_ROB;
+    assign out_rob_available_tag = (empty || (head!=tail)) ? tail:`ZERO_ROB;
+    assign out_rob_full = empty || (head!=tail &&!((tail+1 == head)||(tail==`ROB_SIZE &&head==1)));
     // decoder read
     assign out_back_ready1 = ready_arr[in_query_tag1];
     assign out_back_value1 = data_arr[in_query_tag1];
