@@ -28,7 +28,9 @@ module ROB(
     output reg out_forwarding_ena,
     output reg [`DATA_WIDTH ] out_forwarding_branch_pc,
     output reg out_misbranch, output reg out_forwarding_taken,
-    output reg [`DATA_WIDTH ] out_correct_jump_addr
+    output reg [`DATA_WIDTH ] out_correct_jump_addr,
+    // debug
+    output reg [`DATA_WIDTH ] debug_commit_pc
 );
 
     reg [7:0] head = 0, tail = 1;
@@ -90,6 +92,7 @@ module ROB(
             // commit
             if (!empty & ready_arr[head]) begin
                 // work state
+                debug_commit_pc<=pc_arr[head];
                 if (inst_arr[head][`OP_RANGE ] == `BRANCH_OP) begin
                     out_forwarding_ena <= `TRUE;
                     if (jump_flag_arr[head] ^ predicted_taken[head]) begin

@@ -19,7 +19,9 @@ module reservation(
     output reg [`ROB_WIDTH ] out_rob_tag, output reg [`DATA_WIDTH ] out_pc,
     output reg [`DATA_WIDTH ] out_imm,
     // return to decoder
-    output has_capacity
+    output has_capacity,
+    // debug
+    output reg [`RS_WIDTH ] debug_cdb_rs,output reg [`RS_WIDTH ]debug_ls_cdb_rs
 );
     // inner storage
     reg [`OPERATION_BUS ] op [`RS_SIZE :0];
@@ -64,18 +66,22 @@ module reservation(
                 if (Qj[i] != `ZERO_ROB && Qj[i] == in_alu_cdb_rob_tag&&!in_alu_cdb_isload) begin
                     Qj[i] <= `ZERO_ROB;
                     Vj[i] <= in_alu_cdb_data;
+                    debug_cdb_rs<=i;
                 end
                 if (Qk[i] != `ZERO_ROB && Qk[i] == in_alu_cdb_rob_tag&&!in_alu_cdb_isload) begin
                     Qk[i] <= `ZERO_ROB;
                     Vk[i] <= in_alu_cdb_data;
+                    debug_cdb_rs<=i;
                 end
                 if (Qj[i] != `ZERO_ROB && Qj[i] == in_ls_cdb_rob_tag) begin
                     Qj[i] <= `ZERO_ROB;
                     Vj[i] <= in_ls_cdb_data;
+                    debug_ls_cdb_rs<=i;
                 end
                 if (Qk[i] != `ZERO_ROB && Qk[i] == in_ls_cdb_rob_tag) begin
                     Qk[i] <= `ZERO_ROB;
                     Vk[i] <= in_ls_cdb_data;
+                    debug_ls_cdb_rs<=i;
                 end
             end
             if (assignment_ena) begin
