@@ -18,7 +18,8 @@ module LSqueue(
     output reg [`DATA_WIDTH ] out_mem_addr, output reg [`DATA_WIDTH ] out_mem_write_data,
     output reg out_mem_ena, output reg out_mem_iswrite, output reg [2:0] out_mem_size,
     // debug
-    output reg [`ROB_WIDTH ]debug_cdb_i,input [`DATA_WIDTH ] debug_in_assign_pc
+    output reg [`ROB_WIDTH ]debug_cdb_i,input [`DATA_WIDTH ] debug_in_assign_pc,
+    output reg[`DATA_WIDTH ] debug_tomem_idx
 );
     reg [`ROB_WIDTH ] buffered_rob_tag [`ROB_SIZE :1];
     reg [`INSTRUCTION_WIDTH] buffered_inst [`ROB_SIZE :1];
@@ -97,6 +98,7 @@ module LSqueue(
                     buffered_inst[head]<=`ZERO_DATA ;
                     buffered_valid[head]<=`FALSE ;
                     debug_pc_arr[head]<=`ZERO_DATA ;
+                    debug_tomem_idx<=head;
                     committed[head]<=`FALSE ;
                     // update head
                     if (head+1 == tail || (head == `ROB_SIZE && tail == 1)) begin
