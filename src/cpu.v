@@ -256,8 +256,8 @@ module cpu(
         .in_enqueue_ena(decode_ls_ena), .in_enqueue_rob_tag(decode_out_rob),
         .in_inst(decode_out_inst),
 
-        .in_address(alu_cdb_out), .in_issue_rob_tag(alu_cdb_rob_tag),
-        .in_data(alu_ls_data),
+        .in_cdb_address(alu_cdb_out), .in_cdb_rob_tag(alu_cdb_rob_tag),
+        .in_cdb_data(alu_ls_data),
 
         .in_commit_rob(rob_ls_committed_tag),
 
@@ -265,7 +265,9 @@ module cpu(
 
         .in_mem_ready(mem_ls_ok), .in_mem_read_data(mem_ls_data),
         .out_mem_addr(ls_mem_addr), .out_mem_write_data(ls_mem_val),
-        .out_mem_ena(ls_mem_ena), .out_mem_iswrite(ls_mem_iswrite), .out_mem_size(ls_mem_size)
+        .out_mem_ena(ls_mem_ena), .out_mem_iswrite(ls_mem_iswrite), .out_mem_size(ls_mem_size),
+
+        .debug_in_assign_pc(decode_out_current_pc)
     );
 
 endmodule

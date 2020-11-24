@@ -7,8 +7,8 @@ module LSqueue(
     input in_enqueue_ena, input [`ROB_WIDTH ] in_enqueue_rob_tag,
     input [`INSTRUCTION_WIDTH ] in_inst,
     // input address and data
-    input [`DATA_WIDTH ] in_address, input [`DATA_WIDTH] in_data,
-    input [`ROB_WIDTH ] in_issue_rob_tag,
+    input [`DATA_WIDTH ] in_cdb_address, input [`DATA_WIDTH] in_cdb_data,
+    input [`ROB_WIDTH ] in_cdb_rob_tag,
     // rob commit
     input [`ROB_WIDTH ] in_commit_rob,
     // out to rob and rs
@@ -18,7 +18,7 @@ module LSqueue(
     output reg [`DATA_WIDTH ] out_mem_addr, output reg [`DATA_WIDTH ] out_mem_write_data,
     output reg out_mem_ena, output reg out_mem_iswrite, output reg [2:0] out_mem_size,
     // debug
-    output reg [`ROB_WIDTH ]debug_cdb_i
+    output reg [`ROB_WIDTH ]debug_cdb_i,input [`DATA_WIDTH ] debug_in_assign_pc
 );
     reg [`ROB_WIDTH ] buffered_rob_tag [`ROB_SIZE :1];
     reg [`INSTRUCTION_WIDTH] buffered_inst [`ROB_SIZE :1];
@@ -26,6 +26,7 @@ module LSqueue(
     reg [`DATA_WIDTH ] buffered_data [`ROB_SIZE :1];
     reg buffered_valid [`ROB_SIZE :1];
     reg committed [`ROB_SIZE :1];
+    // reg busy_slot [`ROB_SIZE :1];
     reg [7:0] head, tail, last_store;
     // LH and LB calls for signed-extension
     parameter IDLE=0, STORE=1, LOAD=2, LH=3, LB=4;
@@ -33,6 +34,7 @@ module LSqueue(
     reg [`ROB_WIDTH ] pending_rob;
     integer i;
 
+    reg [`DATA_WIDTH ] debug_pc_arr[`ROB_SIZE :1];
     always @(posedge clk) begin
         out_mem_ena <= `FALSE;
         out_rob_tag <= `ZERO_ROB;
@@ -61,6 +63,7 @@ module LSqueue(
                 buffered_inst[tail] <= in_inst;
                 buffered_valid[tail] <= `FALSE;
                 committed[tail] <= `FALSE;
+                debug_pc_arr[tail]<=debug_in_assign_pc;
                 tail <= tail == `ROB_SIZE ? 1:tail+1;
                 if (head == 0)
                     head <= 1;
@@ -70,13 +73,14 @@ module LSqueue(
                 // Only when rs1 and rs2 are both ready, instructions will be issued to ALU then CDB.
                 // So when it comes to LSqueue, it will be ready immediately.
                 // !commited[i] to avoid rob collision after commiting store
-                if (in_issue_rob_tag!=`ZERO_ROB &&in_issue_rob_tag == buffered_rob_tag[i]&&!committed[i]) begin
-                    buffered_data[i] <= in_data;
-                    buffered_address[i] <= in_address;
+                if (in_cdb_rob_tag !=`ZERO_ROB && in_cdb_rob_tag == buffered_rob_tag[i]&&!committed[i]) begin
+                    buffered_data[i] <= in_cdb_data;
+                    buffered_address[i] <= in_cdb_address;
                     buffered_valid[i] <= `TRUE;
                     debug_cdb_i<=i;
                 end
-                if (in_commit_rob!=`ZERO_ROB &&in_commit_rob == buffered_rob_tag[i]) begin
+                if (in_commit_rob!=`ZERO_ROB &&in_commit_rob == buffered_rob_tag[i]
+                    &&(((head<tail)&&(head<=i&&i<tail))||((head>tail)&&!(head<=i||i<tail)))) begin
                     committed[i] <= `TRUE;
                     if (buffered_inst[i][`OP_RANGE ] == `STORE_OP) begin
                         last_store <= i;
@@ -92,6 +96,7 @@ module LSqueue(
                     buffered_rob_tag[head]<=`ZERO_ROB ;
                     buffered_inst[head]<=`ZERO_DATA ;
                     buffered_valid[head]<=`FALSE ;
+                    debug_pc_arr[head]<=`ZERO_DATA ;
                     committed[head]<=`FALSE ;
                     // update head
                     if (head+1 == tail || (head == `ROB_SIZE && tail == 1)) begin
