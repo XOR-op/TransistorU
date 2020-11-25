@@ -11,10 +11,12 @@ with open('./test/test.c','r') as f:
     code=str(f.read())
     code=code.replace('"io.h"','<stdio.h>')
     code=re.sub('outb\(','printf("%c",',code)
+    code=re.sub('putchar\(','printf("%c",',code)
     code=re.sub('outlln\(',r'printf("%d\\n",',code)
     code=re.sub('outl\(',r'printf("%d",',code)
     code=re.sub('println\(',r'printf("%s\\n",',code)
     code=re.sub('print\(',r'printf("%s",',code)
+    code=re.sub('sleep\(\d+\);','',code)
 
     with open('./test/testx64.c','w') as out:
         out.write(code)

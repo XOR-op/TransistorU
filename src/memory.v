@@ -46,6 +46,13 @@ module memory(
                 status <= IDLE;
             if(reg_ls_iswrite!=`RAM_WT )
                 reg_ls_ena <= `FALSE;
+            if (in_ls_ena&&in_ls_iswrite==`RAM_WT ) begin
+                reg_ls_ena <= `TRUE;
+                reg_ls_iswrite <= in_ls_iswrite;
+                reg_ls_addr <= in_ls_addr;
+                reg_ls_data <= in_ls_data;
+                reg_ls_size <= in_ls_size;
+            end
             reg_fetch_ena <= `FALSE;
         end else if (ena) begin
             // buffer queries

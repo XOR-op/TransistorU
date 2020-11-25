@@ -52,7 +52,7 @@ module LSqueue(
             // head <= 0;
             // tail <= 1;
             last_store <= 0;
-            busy_stat <= `FALSE;
+            busy_stat <= IDLE;
         end else if (in_rollback) begin
             if (last_store == 0) begin
                 empty <= `TRUE;
@@ -61,7 +61,8 @@ module LSqueue(
                 // head <= 0;
                 // tail <= 1;
                 last_store <= 0;
-                busy_stat <= `FALSE;
+                if(busy_stat!=STORE)
+                    busy_stat <= IDLE;
             end else begin
                 // when last_store!=0, all pending inst are stores
                 tail <= (last_store==`ROB_SIZE )?1:last_store+1;
