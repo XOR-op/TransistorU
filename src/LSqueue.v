@@ -17,6 +17,8 @@ module LSqueue(
     input in_mem_ready, input [`DATA_WIDTH ] in_mem_read_data,
     output reg [`DATA_WIDTH ] out_mem_addr, output reg [`DATA_WIDTH ] out_mem_write_data,
     output reg out_mem_ena, output reg out_mem_iswrite, output reg [2:0] out_mem_size,
+    // to fetch
+    output out_lsqueue_isok,
     // debug
     output reg [`ROB_WIDTH ]debug_cdb_i,input [`DATA_WIDTH ] debug_in_assign_pc,
     output reg[`DATA_WIDTH ] debug_tomem_idx
@@ -27,13 +29,16 @@ module LSqueue(
     reg [`DATA_WIDTH ] buffered_data [`ROB_SIZE :1];
     reg buffered_valid [`ROB_SIZE :1];
     reg committed [`ROB_SIZE :1];
-    // reg busy_slot [`ROB_SIZE :1];
-    reg [7:0] head, tail, last_store;
     // LH and LB calls for signed-extension
     parameter IDLE=0, STORE=1, LOAD=2, LH=3, LB=4;
     reg [2:0] busy_stat;
     reg [`ROB_WIDTH ] pending_rob;
     integer i;
+
+    // pointer control
+    reg empty;
+    reg [7:0] head, tail, last_store;
+    assign out_lsqueue_isok = empty || (head!=tail &&!((tail+1 == head)||(tail==`ROB_SIZE &&head==1)));
 
     reg [`DATA_WIDTH ] debug_pc_arr[`ROB_SIZE :1];
     always @(posedge clk) begin
@@ -41,22 +46,31 @@ module LSqueue(
         out_rob_tag <= `ZERO_ROB;
         out_result <= `ZERO_DATA;
         if (rst) begin
-            head <= 0;
+            empty <= `TRUE;
+            head <= 1;
             tail <= 1;
+            // head <= 0;
+            // tail <= 1;
             last_store <= 0;
             busy_stat <= `FALSE;
         end else if (in_rollback) begin
             if (last_store == 0) begin
-                head <= 0;
+                empty <= `TRUE;
+                head <= 1;
                 tail <= 1;
+                // head <= 0;
+                // tail <= 1;
                 last_store <= 0;
                 busy_stat <= `FALSE;
             end else begin
                 // when last_store!=0, all pending inst are stores
                 tail <= (last_store==`ROB_SIZE )?1:last_store+1;
+                //for(i=0;i<=`ROB_SIZE;i=i+1)if(!committed[i])buffered_valid[i]<=`FALSE ;
             end
+            for(i=0;i<=`ROB_SIZE;i=i+1)
+                if(!committed[i])buffered_valid[i]<=`FALSE ;
             // stop loading
-            if (busy_stat == LOAD)
+            if (busy_stat == LOAD||(busy_stat==STORE&&in_mem_ready))
                 busy_stat <= IDLE;
         end else if (ena) begin
             if (in_enqueue_ena) begin
@@ -66,22 +80,24 @@ module LSqueue(
                 committed[tail] <= `FALSE;
                 debug_pc_arr[tail]<=debug_in_assign_pc;
                 tail <= tail == `ROB_SIZE ? 1:tail+1;
-                if (head == 0)
-                    head <= 1;
+                empty <= `FALSE;
+                // if (head == 0)
+                //     head <= 1;
             end
             // broadcast
             for (i = 1; i <= `ROB_SIZE;i = i+1) begin
                 // Only when rs1 and rs2 are both ready, instructions will be issued to ALU then CDB.
                 // So when it comes to LSqueue, it will be ready immediately.
                 // !commited[i] to avoid rob collision after commiting store
-                if (in_cdb_rob_tag !=`ZERO_ROB && in_cdb_rob_tag == buffered_rob_tag[i]&&!committed[i]) begin
+                if (in_cdb_rob_tag !=`ZERO_ROB && in_cdb_rob_tag == buffered_rob_tag[i]&&!committed[i]
+                    &&(((head<tail)&&(head<=i&&i<tail))||((head>tail)&&(head<=i||i<tail)))) begin
                     buffered_data[i] <= in_cdb_data;
                     buffered_address[i] <= in_cdb_address;
                     buffered_valid[i] <= `TRUE;
                     debug_cdb_i<=i;
                 end
                 if (in_commit_rob!=`ZERO_ROB &&in_commit_rob == buffered_rob_tag[i]
-                    &&(((head<tail)&&(head<=i&&i<tail))||((head>tail)&&!(head<=i||i<tail)))) begin
+                    &&(((head<tail)&&(head<=i&&i<tail))||((head>tail)&&(head<=i||i<tail)))) begin
                     committed[i] <= `TRUE;
                     if (buffered_inst[i][`OP_RANGE ] == `STORE_OP) begin
                         last_store <= i;
@@ -101,12 +117,15 @@ module LSqueue(
                     debug_tomem_idx<=head;
                     committed[head]<=`FALSE ;
                     // update head
-                    if (head+1 == tail || (head == `ROB_SIZE && tail == 1)) begin
-                        head <= 0;
-                        tail <= 1;
-                    end else begin
-                        head <= (head == `ROB_SIZE) ? 1:head+1;
-                    end
+                    if ((head+1 == tail) || (head == `RS_SIZE && tail == 1))
+                        empty <= `TRUE;
+                    head <= (head == `RS_SIZE) ? 1:head+1;
+                    // if (head+1 == tail || (head == `ROB_SIZE && tail == 1)) begin
+                    //     head <= 0;
+                    //     tail <= 1;
+                    // end else begin
+                    //     head <= (head == `ROB_SIZE) ? 1:head+1;
+                    // end
                     if (buffered_inst[head][`OP_RANGE ] == `LOAD_OP) begin
                         out_mem_iswrite <= `FALSE;
                         out_mem_write_data <= `ZERO_DATA;

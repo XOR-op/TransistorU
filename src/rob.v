@@ -21,7 +21,7 @@ module ROB(
     output [`DATA_WIDTH ] out_back_value1, output [`DATA_WIDTH ] out_back_value2,
     output out_back_ready1, output out_back_ready2,
     output [`ROB_WIDTH ] out_rob_available_tag,
-    output out_rob_full,
+    output out_rob_ok,
     // commit to LSqueue for store
     output reg [`ROB_WIDTH ] out_committed_rob_tag,
     // misbranch
@@ -33,7 +33,7 @@ module ROB(
     output reg [`DATA_WIDTH ] debug_commit_pc
 );
 
-    reg [7:0] head = 0, tail = 1;
+    reg [7:0] head, tail;
     reg empty;
     // standard robs
     reg [`DATA_WIDTH ] data_arr [`ROB_SIZE :0];
@@ -48,7 +48,7 @@ module ROB(
 
     // next available
     assign out_rob_available_tag = (empty || (head!=tail)) ? tail:`ZERO_ROB;
-    assign out_rob_full = empty || (head!=tail &&!((tail+1 == head)||(tail==`ROB_SIZE &&head==1)));
+    assign out_rob_ok = empty || (head!=tail &&!((tail+1 == head)||(tail==`ROB_SIZE &&head==1)));
     // decoder read
     assign out_back_ready1 = ready_arr[in_query_tag1];
     assign out_back_value1 = data_arr[in_query_tag1];
@@ -72,8 +72,8 @@ module ROB(
                 inst_arr[tail] <= in_inst;
                 dest_arr[tail] <= in_dest;
                 pc_arr[tail] <= in_pc;
-                tail <= tail == `ROB_SIZE ? 1:tail+1;
                 predicted_taken[tail] <= in_predicted_taken;
+                tail <= tail == `ROB_SIZE ? 1:tail+1;
                 empty <= `FALSE;
             end
             // update

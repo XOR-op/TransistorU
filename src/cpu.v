@@ -73,7 +73,7 @@ module cpu(
     wire [`ROB_WIDTH ] rob_out_available_tag, rob_ls_committed_tag;
     wire [`DATA_WIDTH ] rob_pc_branch_pc, rob_pc_correct_jump_addr;
     wire rob_pc_misbranch, rob_pc_taken, rob_pc_forwarding_ena;
-    wire rob_out_full;
+    wire rob_out_ok;
     // memory
     wire mem_fetcher_ok, mem_ls_ok;
     wire [`DATA_WIDTH ] mem_fetcher_data, mem_ls_data;
@@ -87,6 +87,7 @@ module cpu(
     wire [`DATA_WIDTH ] ls_mem_addr, ls_mem_val;
     wire [2:0] ls_mem_size;
     wire ls_mem_ena, ls_mem_iswrite;
+    wire ls_is_ok;
     // ram
     wire [`RAM_WIDTH ] ram_mem_output;
 
@@ -122,7 +123,7 @@ module cpu(
 
         .in_pc(pc_fetcher_next_pc), .in_result_taken(pc_fetcher_next_taken),
 
-        .in_rs_ok(rs_out_ready),.in_rob_ok(rob_out_full)
+        .in_rs_ok(rs_out_ready),.in_rob_ok(rob_out_ok),.in_lsqueue_ok(ls_is_ok)
     );
 
     decode decode_stage(
@@ -207,7 +208,7 @@ module cpu(
         .out_back_value1(rob_decode_value1), .out_back_value2(rob_decode_value2),
         .out_back_ready1(rob_decode_rdy1), .out_back_ready2(rob_decode_rdy2),
         .out_rob_available_tag(rob_out_available_tag),
-        .out_rob_full(rob_out_full),
+        .out_rob_ok(rob_out_ok),
 
         .out_committed_rob_tag(rob_ls_committed_tag),
 
@@ -266,6 +267,8 @@ module cpu(
         .in_mem_ready(mem_ls_ok), .in_mem_read_data(mem_ls_data),
         .out_mem_addr(ls_mem_addr), .out_mem_write_data(ls_mem_val),
         .out_mem_ena(ls_mem_ena), .out_mem_iswrite(ls_mem_iswrite), .out_mem_size(ls_mem_size),
+
+        .out_lsqueue_isok(ls_is_ok),
 
         .debug_in_assign_pc(decode_out_current_pc)
     );
