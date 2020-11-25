@@ -212,8 +212,8 @@ always @*
         endcase
       end
   end
-  reg stat;
-  always@(rst)if(rst)stat=0;
+  //reg stat;
+  //always@(rst)if(rst)stat=0;
 always @*
   begin
     // Setup default FF updates.
@@ -245,8 +245,8 @@ always @*
               d_wr_en   = 1'b1;
             end
             // for simulation only
-           stat=~stat;
-           if(stat)
+           //stat=~stat;
+           //if(stat)
                 $write("%c", io_din);
           end
           3'h04: begin      // 0x30004 write: indicates program stop
