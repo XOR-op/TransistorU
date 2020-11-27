@@ -41,7 +41,7 @@ module cpu(
     wire fetcher_decoder_ena, fetcher_pc_ena, fetcher_taken, fetcher_mem_ena;
     // pc
     wire pc_rollback, pc_fetcher_next_taken;
-    wire [`DATA_WIDTH ] pc_fetcher_next_pc,pc_fetcher_rollback_pc;
+    wire [`DATA_WIDTH ] pc_fetcher_next_pc, pc_fetcher_rollback_pc;
     // decode
     wire [`OPERATION_BUS ] decode_rs_op;
     wire [`REG_WIDTH ] decode_reg_regi1, decode_reg_regi2;
@@ -63,7 +63,7 @@ module cpu(
     // alu
     wire [`DATA_WIDTH ] alu_cdb_out, alu_cdb_jump_addr, alu_ls_data;
     wire [`ROB_WIDTH ] alu_cdb_rob_tag;
-    wire alu_cdb_rob_jump_ena,alu_cdb_isload;
+    wire alu_cdb_rob_jump_ena, alu_cdb_isload;
     // rob
     wire [`REG_WIDTH ] rob_reg_rd_reg;
     wire [`ROB_WIDTH ] rob_reg_rd_rob;
@@ -98,7 +98,7 @@ module cpu(
         .in_fetcher_ena(fetcher_pc_ena),
 
         .in_last_pc(fetcher_out_pc), .in_last_inst(fetcher_inst),
-        .out_next_pc(pc_fetcher_next_pc),.out_next_taken(pc_fetcher_next_taken),
+        .out_next_pc(pc_fetcher_next_pc), .out_next_taken(pc_fetcher_next_taken),
         .out_rollback_pc(pc_fetcher_rollback_pc),
 
         .in_misbranch(rob_pc_misbranch), .in_forwarding_branch_taken(rob_pc_taken),
@@ -115,8 +115,6 @@ module cpu(
         .out_inst(fetcher_inst), .out_decoder_pc(fetcher_out_pc),
 
         .out_pc_reg_ena(fetcher_pc_ena),
-        // .out_pc_query_taken(fetcher_pc_last_pc),
-
 
         .out_mem_ena(fetcher_mem_ena), .out_address(fetcher_mem_addr),
 
@@ -125,11 +123,11 @@ module cpu(
         .in_normal_pc(pc_fetcher_next_pc), .in_rollback_pc(pc_fetcher_rollback_pc),
         .in_result_taken(pc_fetcher_next_taken),
 
-        .in_rs_ok(rs_out_ready),.in_rob_ok(rob_out_ok),.in_lsqueue_ok(ls_is_ok)
+        .in_rs_ok(rs_out_ready), .in_rob_ok(rob_out_ok), .in_lsqueue_ok(ls_is_ok)
     );
 
     decode decode_stage(
-        .clk(clk_in), .ena(~rst_in && rdy_in && fetcher_decoder_ena ),
+        .clk(clk_in), .ena(~rst_in && rdy_in && fetcher_decoder_ena),
         .in_inst(fetcher_inst),
         .in_current_pc(fetcher_out_pc), .in_predicted_taken(fetcher_taken),
 
@@ -150,11 +148,11 @@ module cpu(
         .out_rs_op(decode_rs_op),
         .out_operand1(decode_rs_operand1), .out_operand2(decode_rs_operand2),
         .out_tag1(decode_rs_tag1), .out_tag2(decode_rs_tag2),
-        .out_lsqueue_ena(decode_ls_ena),.out_rd_rob_tag(decode_out_rob),
+        .out_lsqueue_ena(decode_ls_ena), .out_rd_rob_tag(decode_out_rob),
 
         .out_reg_rd(decode_out_reg_rd), .out_predicted_taken(decode_rob_taken),
 
-        .out_assign_ena(decode_out_assign_ena), .out_current_pc(decode_out_current_pc),.out_inst(decode_out_inst)
+        .out_assign_ena(decode_out_assign_ena), .out_current_pc(decode_out_current_pc), .out_inst(decode_out_inst)
     );
 
     reservation resevation_stage(
@@ -165,7 +163,7 @@ module cpu(
         .in_Vj(decode_rs_operand1), .in_Vk(decode_rs_operand2),
         .in_pc(decode_out_current_pc), .in_rd_rob(decode_out_rob),
 
-        .in_alu_cdb_rob_tag(alu_cdb_rob_tag), .in_alu_cdb_data(alu_cdb_out),.in_alu_cdb_isload(alu_cdb_isload),
+        .in_alu_cdb_rob_tag(alu_cdb_rob_tag), .in_alu_cdb_data(alu_cdb_out), .in_alu_cdb_isload(alu_cdb_isload),
         .in_ls_cdb_rob_tag(ls_cdb_rob_tag), .in_ls_cdb_data(ls_cdb_val),
 
         .out_op(rs_alu_op),
@@ -185,7 +183,7 @@ module cpu(
         .imm(rs_alu_imm),
 
         .out(alu_cdb_out), .out_rob_tag(alu_cdb_rob_tag),
-        .out_ls_data(alu_ls_data),.out_is_load(alu_cdb_isload),
+        .out_ls_data(alu_ls_data), .out_is_load(alu_cdb_isload),
 
         .jump_ena(alu_cdb_rob_jump_ena), .jump_addr(alu_cdb_jump_addr)
     );
@@ -193,7 +191,7 @@ module cpu(
     ROB rob_stage(
         .clk(clk_in), .rst(rst_in | pc_rollback), .ena(rdy_in),
 
-        .in_cdb_rob_tag(alu_cdb_rob_tag), .in_cdb_value(alu_cdb_out),.in_cdb_isload(alu_cdb_isload),
+        .in_cdb_rob_tag(alu_cdb_rob_tag), .in_cdb_value(alu_cdb_out), .in_cdb_isload(alu_cdb_isload),
         .in_cdb_isjump(alu_cdb_rob_jump_ena), .in_cdb_jump_addr(alu_cdb_jump_addr),
         .in_ls_cdb_rob_tag(ls_cdb_rob_tag), .in_ls_cdb_value(ls_cdb_val),
 
@@ -272,7 +270,10 @@ module cpu(
 
         .out_lsqueue_isok(ls_is_ok)
 
-        //.debug_in_assign_pc(decode_out_current_pc)
+`ifdef DEBUG_MACRO
+        ,
+        .debug_in_assign_pc(decode_out_current_pc)
+`endif
     );
 
 endmodule

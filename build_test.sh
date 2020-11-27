@@ -20,8 +20,8 @@ ${rpath}riscv32-unknown-elf-objcopy -O binary ./test/test.om ./test/test.bin
 # decompile (for debugging)
 ${rpath}riscv32-unknown-elf-objdump -D ./test/test.om > ./test/test.dump
 # output
-./getout.py
-cat ./test/x64.ans
+#./getout.py
+cat ./testcase/${1%.*}.ans
 <<'COMMENT'
 python3 -c 'with open("./test/x64.ans")as p:
     str=p.read()

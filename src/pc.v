@@ -23,11 +23,6 @@ module pc(
         //out_next_taken = prediction_table[in_last_pc[`PREDICTION_INDEX_RANGE ]] [1];
         out_next_taken = 0;
     end
-    // always @(*) begin
-    //     if (in_misbranch) begin
-    //         out_next_pc = in_forwarding_correct_address;
-    //     end
-    // end
     assign out_rollback_pc=in_forwarding_correct_address;
     integer i;
     always @(posedge clk) begin

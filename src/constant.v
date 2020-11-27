@@ -1,5 +1,7 @@
 `timescale 1ns/1ps
 
+`define DEBUG_MACRO
+
 // width and capacity
 `define INSTRUCTION_WIDTH 31:0
 `define DATA_WIDTH 31:0

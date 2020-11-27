@@ -19,9 +19,12 @@ module LSqueue(
     output reg out_mem_ena, output reg out_mem_iswrite, output reg [2:0] out_mem_size,
     // to fetch
     output out_lsqueue_isok
+`ifdef DEBUG_MACRO
+    ,
     // debug
-    //output reg [`ROB_WIDTH ] debug_cdb_i, input [`DATA_WIDTH ] debug_in_assign_pc,
-    //output reg [`DATA_WIDTH ] debug_tomem_idx
+    output reg [`ROB_WIDTH ] debug_cdb_i, input [`DATA_WIDTH ] debug_in_assign_pc,
+    output reg [`DATA_WIDTH ] debug_tomem_idx
+`endif
 );
     reg [`ROB_WIDTH ] buffered_rob_tag [`ROB_SIZE :1];
     reg [`INSTRUCTION_WIDTH] buffered_inst [`ROB_SIZE :1];
@@ -40,7 +43,9 @@ module LSqueue(
     reg [7:0] head, tail, last_store;
     assign out_lsqueue_isok = empty || (head != tail && !((tail+1 == head) || (tail == `ROB_SIZE && head == 1)));
 
-   // reg [`DATA_WIDTH ] debug_pc_arr [`ROB_SIZE :1];
+`ifdef DEBUG_MACRO
+    reg [`DATA_WIDTH ] debug_pc_arr [`ROB_SIZE :1];
+`endif
     always @(posedge clk) begin
         out_mem_ena <= `FALSE;
         out_rob_tag <= `ZERO_ROB;
@@ -74,7 +79,9 @@ module LSqueue(
                 buffered_inst[tail] <= in_inst;
                 buffered_valid[tail] <= `FALSE;
                 committed[tail] <= `FALSE;
-                //debug_pc_arr[tail] <= debug_in_assign_pc;
+`ifdef DEBUG_MACRO
+                debug_pc_arr[tail] <= debug_in_assign_pc;
+`endif
                 tail <= tail == `ROB_SIZE ? 1:tail+1;
                 empty <= `FALSE;
             end
@@ -88,8 +95,10 @@ module LSqueue(
                     buffered_rob_tag[head] <= `ZERO_ROB;
                     buffered_inst[head] <= `ZERO_DATA;
                     buffered_valid[head] <= `FALSE;
-                    //debug_pc_arr[head] <= `ZERO_DATA;
-                    //debug_tomem_idx <= head;
+`ifdef DEBUG_MACRO
+                    debug_pc_arr[head] <= `ZERO_DATA;
+                    debug_tomem_idx <= head;
+`endif
                     committed[head] <= `FALSE;
                     // update head
                     if ((head+1 == tail) || (head == `RS_SIZE && tail == 1))
@@ -159,7 +168,9 @@ module LSqueue(
                     buffered_data[i] <= in_cdb_data;
                     buffered_address[i] <= in_cdb_address;
                     buffered_valid[i] <= `TRUE;
-                    //debug_cdb_i <= i;
+`ifdef DEBUG_MACRO
+                    debug_cdb_i <= i;
+`endif
                 end
                 if (in_commit_rob != `ZERO_ROB && in_commit_rob == buffered_rob_tag[i]
                     && (((head < tail) && (head <= i && i < tail)) || ((head > tail) && (head <= i || i < tail)))) begin

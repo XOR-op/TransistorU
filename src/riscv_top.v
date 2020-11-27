@@ -23,7 +23,9 @@ reg rst_delay;
 wire clk;
 
 // assign EXCLK (or your own clock module) to clk
-// assign clk = EXCLK;
+`ifdef DEBUG_MACRO
+assign clk = EXCLK;
+`else
 wire locked;
 Underclocking new_clock(
     .reset(btnC),
@@ -31,6 +33,7 @@ Underclocking new_clock(
     .clk_out1(clk),
     .locked(locked)
 );
+`endif
 
 always @(posedge clk or posedge btnC)
 begin

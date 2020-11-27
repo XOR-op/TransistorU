@@ -3,7 +3,7 @@
 module ROB(
     input clk, input rst, input ena,
     // broadcast
-    input [`ROB_WIDTH ] in_cdb_rob_tag, input [`DATA_WIDTH ] in_cdb_value,input in_cdb_isload,
+    input [`ROB_WIDTH ] in_cdb_rob_tag, input [`DATA_WIDTH ] in_cdb_value, input in_cdb_isload,
     input in_cdb_isjump, input [`DATA_WIDTH ] in_cdb_jump_addr,
     input [`ROB_WIDTH ] in_ls_cdb_rob_tag, input [`DATA_WIDTH ] in_ls_cdb_value,
     // assignment by decoder
@@ -29,8 +29,11 @@ module ROB(
     output reg [`DATA_WIDTH ] out_forwarding_branch_pc,
     output reg out_misbranch, output reg out_forwarding_taken,
     output reg [`DATA_WIDTH ] out_correct_jump_addr
+`ifdef DEBUG_MACRO
+    ,
     // debug
-    //output reg [`DATA_WIDTH ] debug_commit_pc,output reg [`DATA_WIDTH ] debug_commit_inst
+    output reg [`DATA_WIDTH ] debug_commit_pc, output reg [`DATA_WIDTH ] debug_commit_inst
+`endif
 );
 
     reg [7:0] head, tail;
@@ -47,19 +50,19 @@ module ROB(
     reg [`DATA_WIDTH ] jump_addr_arr [`ROB_SIZE :1];
 
     // next available
-    assign out_rob_available_tag = (empty || (head!=tail)) ? tail:`ZERO_ROB;
-    assign out_rob_ok = empty || (head!=tail &&!((tail+1 == head)||(tail==`ROB_SIZE &&head==1)));
+    assign out_rob_available_tag = (empty || (head != tail)) ? tail:`ZERO_ROB;
+    assign out_rob_ok = empty || (head != tail && !((tail+1 == head) || (tail == `ROB_SIZE && head == 1)));
     // decoder read
     assign out_back_ready1 = ready_arr[in_query_tag1];
     assign out_back_value1 = data_arr[in_query_tag1];
     assign out_back_ready2 = ready_arr[in_query_tag2];
     assign out_back_value2 = data_arr[in_query_tag2];
-
-    // reg [31:0] debug_counter=0;
-    // initial begin
-    //     debug_counter=0;
-    // end
-
+`ifdef DEBUG_MACRO
+    reg [31:0] debug_counter = 0;
+    initial begin
+        debug_counter = 0;
+    end
+`endif
     always @(posedge clk) begin
         out_misbranch <= `FALSE;
         out_correct_jump_addr <= `ZERO_DATA;
@@ -98,10 +101,12 @@ module ROB(
             // commit
             if (!empty & ready_arr[head]) begin
                 // work state
-               // if(inst_arr[head][`OP_RANGE ]!=`STORE_OP &&inst_arr[head][`OP_RANGE ]!=`BRANCH_OP )
-               //     debug_counter<=debug_counter+1;
-                //debug_commit_pc<=pc_arr[head];
-                //debug_commit_inst<=inst_arr[head];
+`ifdef DEBUG_MACRO
+                if (inst_arr[head][`OP_RANGE ] != `STORE_OP && inst_arr[head][`OP_RANGE ] != `BRANCH_OP)
+                    debug_counter <= debug_counter+1;
+                debug_commit_pc <= pc_arr[head];
+                debug_commit_inst <= inst_arr[head];
+`endif
                 if (inst_arr[head][`OP_RANGE ] == `BRANCH_OP) begin
                     out_forwarding_ena <= `TRUE;
                     if (jump_flag_arr[head] ^ predicted_taken[head]) begin

@@ -11,7 +11,7 @@ module reservation(
     input [`DATA_WIDTH ] in_pc,
     input [`ROB_WIDTH ] in_rd_rob,
     // CDB broadcast
-    input [`ROB_WIDTH ] in_alu_cdb_rob_tag, input [`DATA_WIDTH ] in_alu_cdb_data,input in_alu_cdb_isload,
+    input [`ROB_WIDTH ] in_alu_cdb_rob_tag, input [`DATA_WIDTH ] in_alu_cdb_data, input in_alu_cdb_isload,
     input [`ROB_WIDTH ] in_ls_cdb_rob_tag, input [`DATA_WIDTH ] in_ls_cdb_data,
     // pass to alu
     output reg [`OPERATION_BUS ] out_op,
@@ -21,7 +21,10 @@ module reservation(
     // return to decoder
     output has_capacity
     // debug
-    //output reg [`RS_WIDTH ] debug_cdb_rs,output reg [`RS_WIDTH ]debug_ls_cdb_rs
+`ifdef DEBUG_MACRO
+    ,
+    output reg [`RS_WIDTH ] debug_cdb_rs, output reg [`RS_WIDTH ] debug_ls_cdb_rs
+`endif
 );
     // inner storage
     reg [`OPERATION_BUS ] op [`RS_SIZE :0];
@@ -63,34 +66,42 @@ module reservation(
             end
             // broadcast
             for (i = 1; i <= `RS_SIZE;i = i+1) begin
-                if (Qj[i] != `ZERO_ROB && Qj[i] == in_alu_cdb_rob_tag&&!in_alu_cdb_isload) begin
+                if (Qj[i] != `ZERO_ROB && Qj[i] == in_alu_cdb_rob_tag && !in_alu_cdb_isload) begin
                     Qj[i] <= `ZERO_ROB;
                     Vj[i] <= in_alu_cdb_data;
-                   // debug_cdb_rs<=i;
+`ifdef DEBUG_MACRO
+                    debug_cdb_rs <= i;
+`endif
                 end
-                if (Qk[i] != `ZERO_ROB && Qk[i] == in_alu_cdb_rob_tag&&!in_alu_cdb_isload) begin
+                if (Qk[i] != `ZERO_ROB && Qk[i] == in_alu_cdb_rob_tag && !in_alu_cdb_isload) begin
                     Qk[i] <= `ZERO_ROB;
                     Vk[i] <= in_alu_cdb_data;
-                   // debug_cdb_rs<=i;
+`ifdef DEBUG_MACRO
+                    debug_cdb_rs <= i;
+`endif
                 end
                 if (Qj[i] != `ZERO_ROB && Qj[i] == in_ls_cdb_rob_tag) begin
                     Qj[i] <= `ZERO_ROB;
                     Vj[i] <= in_ls_cdb_data;
-                   // debug_ls_cdb_rs<=i;
+`ifdef DEBUG_MACRO
+                    debug_ls_cdb_rs <= i;
+`endif
                 end
                 if (Qk[i] != `ZERO_ROB && Qk[i] == in_ls_cdb_rob_tag) begin
                     Qk[i] <= `ZERO_ROB;
                     Vk[i] <= in_ls_cdb_data;
-                   // debug_ls_cdb_rs<=i;
+`ifdef DEBUG_MACRO
+                    debug_ls_cdb_rs <= i;
+`endif
                 end
             end
             if (assignment_ena) begin
                 // assignment
                 op[free_rs_tag] <= in_op;
-                Qj[free_rs_tag] <= (in_Qj == in_alu_cdb_rob_tag&&!in_alu_cdb_isload) ?`ZERO_ROB :(in_Qj == in_ls_cdb_rob_tag ?`ZERO_ROB :in_Qj);
-                Qk[free_rs_tag] <= (in_Qk == in_alu_cdb_rob_tag&&!in_alu_cdb_isload) ?`ZERO_ROB :(in_Qk == in_ls_cdb_rob_tag ?`ZERO_ROB :in_Qk);
-                Vj[free_rs_tag] <= (in_Qj == `ZERO_ROB) ? in_Vj:((in_Qj == in_alu_cdb_rob_tag&&!in_alu_cdb_isload) ? in_alu_cdb_data:(in_Qj == in_ls_cdb_rob_tag ? in_ls_cdb_data:in_Vj));
-                Vk[free_rs_tag] <= (in_Qk == `ZERO_ROB) ? in_Vk:((in_Qk == in_alu_cdb_rob_tag&&!in_alu_cdb_isload) ? in_alu_cdb_data:(in_Qk == in_ls_cdb_rob_tag ? in_ls_cdb_data:in_Vk));
+                Qj[free_rs_tag] <= (in_Qj == in_alu_cdb_rob_tag && !in_alu_cdb_isload) ?`ZERO_ROB :(in_Qj == in_ls_cdb_rob_tag ?`ZERO_ROB :in_Qj);
+                Qk[free_rs_tag] <= (in_Qk == in_alu_cdb_rob_tag && !in_alu_cdb_isload) ?`ZERO_ROB :(in_Qk == in_ls_cdb_rob_tag ?`ZERO_ROB :in_Qk);
+                Vj[free_rs_tag] <= (in_Qj == `ZERO_ROB) ? in_Vj:((in_Qj == in_alu_cdb_rob_tag && !in_alu_cdb_isload) ? in_alu_cdb_data:(in_Qj == in_ls_cdb_rob_tag ? in_ls_cdb_data:in_Vj));
+                Vk[free_rs_tag] <= (in_Qk == `ZERO_ROB) ? in_Vk:((in_Qk == in_alu_cdb_rob_tag && !in_alu_cdb_isload) ? in_alu_cdb_data:(in_Qk == in_ls_cdb_rob_tag ? in_ls_cdb_data:in_Vk));
                 busy[free_rs_tag] <= `TRUE;
                 PCs[free_rs_tag] <= in_pc;
                 imms[free_rs_tag] <= in_imm;

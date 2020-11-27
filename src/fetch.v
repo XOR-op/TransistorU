@@ -36,7 +36,6 @@ module fetcher(
     integer i;
     always @(posedge clk) begin
         out_mem_ena <= `FALSE;
-        // out_pc_reg_ena <= `TRUE;
         if (rst) begin
             for (i = 0; i < `ICACHE_SIZE;i = i+1) begin
                 valid[i] <= 0;

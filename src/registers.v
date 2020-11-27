@@ -19,13 +19,17 @@ module regFile(
     reg [`ROB_WIDTH ] rob_tags [`REG_SIZE -1:0];
     reg busy [`REG_SIZE -1:0];
 
-    //reg [31:0]debug_counter;
+`ifdef DEBUG_MACRO
+    reg [31:0] debug_counter;
+`endif
     always @(posedge clk) begin
         if (rst) begin
             datas[`ZERO_REG ] <= `ZERO_DATA;
             rob_tags[`ZERO_REG ] <= `ZERO_ROB;
             busy[`ZERO_REG ] <= `FALSE;
-            //debug_counter<=0;
+`ifdef DEBUG_MACRO
+            debug_counter <= 0;
+`endif
         end
     end
     generate
@@ -44,7 +48,10 @@ module regFile(
                     if (in_rob_reg_index == regi) begin
                         // set by rob
                         datas[regi] <= in_new_value;
-                       // debug_counter<=debug_counter+1;
+
+`ifdef DEBUG_MACRO
+                        debug_counter <= debug_counter+1;
+`endif
                         if (in_rob_entry_tag == rob_tags[regi]) begin
                             // not busy
                             rob_tags[regi] <= `ZERO_ROB;
