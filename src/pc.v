@@ -28,7 +28,7 @@ module pc(
     //         out_next_pc = in_forwarding_correct_address;
     //     end
     // end
-    assign out_rollback_pc=in_forwarding_branch_pc;
+    assign out_rollback_pc=in_forwarding_correct_address;
     integer i;
     always @(posedge clk) begin
         if (rst) begin

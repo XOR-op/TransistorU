@@ -63,7 +63,7 @@ module LSqueue(
                 // when last_store!=0, all pending inst are stores
                 tail <= (last_store == `ROB_SIZE) ? 1:last_store+1;
             end
-            for (i = 0; i <= `ROB_SIZE;i = i+1)
+            for (i = 1; i <= `ROB_SIZE;i = i+1)
                 if (!committed[i]) buffered_valid[i] <= `FALSE;
             // stop loading and response to memory's signal
             if (busy_stat == LOAD || (busy_stat == STORE && in_mem_ready))
