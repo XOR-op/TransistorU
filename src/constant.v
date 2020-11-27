@@ -1,6 +1,6 @@
 `timescale 1ns/1ps
 
-`define DEBUG_MACRO
+ `define DEBUG_MACRO
 
 // width and capacity
 `define INSTRUCTION_WIDTH 31:0
@@ -37,6 +37,7 @@
 `define FALSE 1'b0
 `define PREDICTED 32'b0
 `define MISPREDICTED 32'b1
+`define UART_ADDR 32'h30000
 
 
 // agreement
