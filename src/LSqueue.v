@@ -164,7 +164,7 @@ module LSqueue(
                 // So when it comes to LSqueue, it will be ready immediately.
                 // !commited[i] to avoid rob collision after commiting store
                 if (in_cdb_rob_tag != `ZERO_ROB && in_cdb_rob_tag == buffered_rob_tag[i] && !committed[i]
-                    && (((head < tail) && (head <= i && i < tail)) || ((head > tail) && (head <= i || i < tail)))) begin
+                    && (((head < tail) && (head <= i && i < tail)) || ((head > tail) && (head <= i || i < tail)||(!empty&&head==tail)))) begin
                     buffered_data[i] <= in_cdb_data;
                     buffered_address[i] <= in_cdb_address;
                     buffered_valid[i] <= `TRUE;
@@ -173,7 +173,7 @@ module LSqueue(
 `endif
                 end
                 if (in_commit_rob != `ZERO_ROB && in_commit_rob == buffered_rob_tag[i]
-                    && (((head < tail) && (head <= i && i < tail)) || ((head > tail) && (head <= i || i < tail)))) begin
+                    && (((head < tail) && (head <= i && i < tail)) || ((head > tail) && (head <= i || i < tail))||(!empty&&head==tail))) begin
                     // when commited, it must be store
                     committed[i] <= `TRUE;
                     // after issue to avoid collided assignment of last_store
