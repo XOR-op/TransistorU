@@ -28,9 +28,9 @@ module ROB(
     output reg out_forwarding_ena,
     output reg [`DATA_WIDTH ] out_forwarding_branch_pc,
     output reg out_misbranch, output reg out_forwarding_taken,
-    output reg [`DATA_WIDTH ] out_correct_jump_addr,
+    output reg [`DATA_WIDTH ] out_correct_jump_addr
     // debug
-    output reg [`DATA_WIDTH ] debug_commit_pc,output reg [`DATA_WIDTH ] debug_commit_inst
+    //output reg [`DATA_WIDTH ] debug_commit_pc,output reg [`DATA_WIDTH ] debug_commit_inst
 );
 
     reg [7:0] head, tail;
@@ -55,10 +55,10 @@ module ROB(
     assign out_back_ready2 = ready_arr[in_query_tag2];
     assign out_back_value2 = data_arr[in_query_tag2];
 
-    reg [31:0] debug_counter=0;
-    initial begin
-        debug_counter=0;
-    end
+    // reg [31:0] debug_counter=0;
+    // initial begin
+    //     debug_counter=0;
+    // end
 
     always @(posedge clk) begin
         out_misbranch <= `FALSE;
@@ -98,10 +98,10 @@ module ROB(
             // commit
             if (!empty & ready_arr[head]) begin
                 // work state
-                if(inst_arr[head][`OP_RANGE ]!=`STORE_OP &&inst_arr[head][`OP_RANGE ]!=`BRANCH_OP )
-                    debug_counter<=debug_counter+1;
-                debug_commit_pc<=pc_arr[head];
-                debug_commit_inst<=inst_arr[head];
+               // if(inst_arr[head][`OP_RANGE ]!=`STORE_OP &&inst_arr[head][`OP_RANGE ]!=`BRANCH_OP )
+               //     debug_counter<=debug_counter+1;
+                //debug_commit_pc<=pc_arr[head];
+                //debug_commit_inst<=inst_arr[head];
                 if (inst_arr[head][`OP_RANGE ] == `BRANCH_OP) begin
                     out_forwarding_ena <= `TRUE;
                     if (jump_flag_arr[head] ^ predicted_taken[head]) begin

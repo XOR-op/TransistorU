@@ -41,7 +41,7 @@ module cpu(
     wire fetcher_decoder_ena, fetcher_pc_ena, fetcher_taken, fetcher_mem_ena;
     // pc
     wire pc_rollback, pc_fetcher_next_taken;
-    wire [`DATA_WIDTH ] pc_fetcher_next_pc;
+    wire [`DATA_WIDTH ] pc_fetcher_next_pc,pc_fetcher_rollback_pc;
     // decode
     wire [`OPERATION_BUS ] decode_rs_op;
     wire [`REG_WIDTH ] decode_reg_regi1, decode_reg_regi2;
@@ -99,6 +99,7 @@ module cpu(
 
         .in_last_pc(fetcher_out_pc), .in_last_inst(fetcher_inst),
         .out_next_pc(pc_fetcher_next_pc),.out_next_taken(pc_fetcher_next_taken),
+        .out_rollback_pc(pc_fetcher_rollback_pc),
 
         .in_misbranch(rob_pc_misbranch), .in_forwarding_branch_taken(rob_pc_taken),
         .in_forwarding_branch_pc(rob_pc_branch_pc), .in_forwarding_correct_address(rob_pc_correct_jump_addr),
@@ -121,7 +122,8 @@ module cpu(
 
         .in_mem_ready(mem_fetcher_ok), .in_mem_inst(mem_fetcher_data),
 
-        .in_pc(pc_fetcher_next_pc), .in_result_taken(pc_fetcher_next_taken),
+        .in_normal_pc(pc_fetcher_next_pc), .in_rollback_pc(pc_fetcher_rollback_pc),
+        .in_result_taken(pc_fetcher_next_taken),
 
         .in_rs_ok(rs_out_ready),.in_rob_ok(rob_out_ok),.in_lsqueue_ok(ls_is_ok)
     );
@@ -268,9 +270,9 @@ module cpu(
         .out_mem_addr(ls_mem_addr), .out_mem_write_data(ls_mem_val),
         .out_mem_ena(ls_mem_ena), .out_mem_iswrite(ls_mem_iswrite), .out_mem_size(ls_mem_size),
 
-        .out_lsqueue_isok(ls_is_ok),
+        .out_lsqueue_isok(ls_is_ok)
 
-        .debug_in_assign_pc(decode_out_current_pc)
+        //.debug_in_assign_pc(decode_out_current_pc)
     );
 
 endmodule

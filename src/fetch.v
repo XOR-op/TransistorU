@@ -12,7 +12,7 @@ module fetcher(
     // from memory
     input in_mem_ready, input [`DATA_WIDTH ] in_mem_inst,
     // from pc reg
-    input [`DATA_WIDTH ] in_pc, input in_result_taken,
+    input [`DATA_WIDTH ] in_normal_pc,input [`DATA_WIDTH ] in_rollback_pc, input in_result_taken,
     input in_rs_ok, input in_rob_ok,input in_lsqueue_ok
 );
     reg busy;
@@ -20,6 +20,8 @@ module fetcher(
     reg [`DATA_WIDTH ] data [`ICACHE_WIDTH ];
     reg [`TAG_WIDTH ] tag [`ICACHE_WIDTH ];
     reg valid [`ICACHE_WIDTH ];
+    wire [`DATA_WIDTH ] in_pc;
+    assign in_pc=in_rollback?in_rollback_pc:in_normal_pc;
 
     assign out_pc_reg_ena = out_decoder_and_pc_ena;
     wire icache_valid=valid[in_pc[`INDEX_WIDTH ]] && tag[in_pc[`INDEX_WIDTH ]] == in_pc[`TAG_WIDTH ];
