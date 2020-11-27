@@ -23,15 +23,14 @@ reg rst_delay;
 wire clk;
 
 // assign EXCLK (or your own clock module) to clk
-assign clk = EXCLK;
-/*
+// assign clk = EXCLK;
 wire locked;
 Underclocking new_clock(
     .reset(btnC),
     .clk_in1(EXCLK),
     .clk_out1(clk),
     .locked(locked)
-);*/
+);
 
 always @(posedge clk or posedge btnC)
 begin
