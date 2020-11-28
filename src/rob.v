@@ -118,6 +118,7 @@ module ROB(
                 end else if (inst_arr[head][`OP_RANGE ] == `JALR_OP) begin
                     out_forwarding_taken <= `TRUE;
                     out_forwarding_ena <= `TRUE;
+                    out_forwarding_branch_pc<=pc_arr[head];
                     out_misbranch <= `TRUE;
                     out_correct_jump_addr <= jump_addr_arr[head];
                     out_reg_reg <= dest_arr[head];
