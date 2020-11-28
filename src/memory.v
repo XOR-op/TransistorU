@@ -1,6 +1,6 @@
 `include "constant.v"
 module memory(
-    input clk, input rst, input ena,
+    input clk, input rst, input ena, input uart_full,
     // misbranch
     input in_rollback,
     // ram
@@ -29,7 +29,7 @@ module memory(
     reg [`DATA_WIDTH ] buffered_addr;
     reg [`DATA_WIDTH ] buffered_data;
     reg [2:0] stop_stage, cur_stage;
-    reg uart_stall, is_to_uart;
+    reg uart_stall, is_to_uart, uart_flip;
 
     assign out_fetcher_data = buffered_data;
     assign out_ls_data = buffered_data;
@@ -79,26 +79,29 @@ module memory(
                 if (in_ls_ena || reg_ls_ena) begin
                     if (in_ls_iswrite) begin
                         // write
-                        if (in_ls_ena) begin
-                            stop_stage <= in_ls_size;
-                            buffered_addr <= in_ls_addr+1;
-                            buffered_data <= in_ls_data;
-                            out_ram_data <= in_ls_data[7:0];
-                            out_ram_addr <= in_ls_addr;
-                            is_to_uart <= in_ls_addr == `UART_ADDR;
-                            out_ram_rd_wt_flag <= (uart_stall&&in_ls_addr == `UART_ADDR )?`RAM_RD :`RAM_WT;
-                            cur_stage <= (uart_stall&&in_ls_addr == `UART_ADDR) ? 3'b000:3'b001;
-                        end else begin
-                            stop_stage <= reg_ls_size;
-                            buffered_addr <= reg_ls_addr+1;
-                            buffered_data <= reg_ls_data;
-                            out_ram_data <= reg_ls_data[7:0];
-                            out_ram_addr <= reg_ls_addr;
-                            is_to_uart <= reg_ls_addr == `UART_ADDR;
-                            out_ram_rd_wt_flag <=( uart_stall&&reg_ls_addr == `UART_ADDR )?`RAM_RD :`RAM_WT;
-                            cur_stage <= (uart_stall&&reg_ls_addr == `UART_ADDR )? 3'b000:3'b001;
+                        if (!uart_full) begin
+                            if (in_ls_ena) begin
+                                stop_stage <= in_ls_size;
+                                buffered_addr <= in_ls_addr+1;
+                                buffered_data <= in_ls_data;
+                                out_ram_data <= in_ls_data[7:0];
+                                out_ram_addr <= (uart_stall && in_ls_addr == `UART_ADDR) ?`ZERO_DATA :in_ls_addr;
+                                is_to_uart <= in_ls_addr == `UART_ADDR;
+                                out_ram_rd_wt_flag <= (uart_stall && in_ls_addr == `UART_ADDR) ?`RAM_RD :`RAM_WT;
+                                cur_stage <= (uart_stall && in_ls_addr == `UART_ADDR) ? 3'b000:3'b001;
+                            end else begin
+                                stop_stage <= reg_ls_size;
+                                buffered_addr <= reg_ls_addr+1;
+                                buffered_data <= reg_ls_data;
+                                out_ram_data <= reg_ls_data[7:0];
+                                out_ram_addr <= (uart_stall && reg_ls_addr == `UART_ADDR) ?`ZERO_DATA :reg_ls_addr;
+                                is_to_uart <= reg_ls_addr == `UART_ADDR;
+                                out_ram_rd_wt_flag <= (uart_stall && reg_ls_addr == `UART_ADDR) ?`RAM_RD :`RAM_WT;
+                                cur_stage <= (uart_stall && reg_ls_addr == `UART_ADDR) ? 3'b000:3'b001;
+                            end
+                            uart_flip <= 1;
+                            status <= LS_WRITE;
                         end
-                        status <= LS_WRITE;
                     end else begin
                         // read
                         if (in_ls_ena) begin
@@ -129,7 +132,7 @@ module memory(
                     out_ram_rd_wt_flag <= `RAM_RD;
                     out_ram_addr <= `ZERO_DATA;
                 end
-            end else begin
+            end else if (status!=LS_WRITE||!uart_full) begin
                 // running
                 out_ram_addr <= buffered_addr;
                 out_ram_rd_wt_flag <= status != LS_WRITE ?`RAM_RD :`RAM_WT;
@@ -170,27 +173,37 @@ module memory(
                     end
                     LS_WRITE: begin
                         // write data
-                        case (cur_stage)
-                            3'b000: begin
-                                // stall one cycle
-                                out_ram_data <= buffered_data[7:0];
-                                out_ram_addr <= buffered_addr-1;
-                                out_ram_rd_wt_flag <= `RAM_WT;
-                                buffered_addr <= buffered_addr;
+                        if (!is_to_uart || uart_flip) begin
+                            uart_flip <= 0;
+                            case (cur_stage)
+                                3'b000: begin
+                                    // stall one cycle
+                                    out_ram_data <= buffered_data[7:0];
+                                    out_ram_addr <= buffered_addr-1;
+                                    out_ram_rd_wt_flag <= `RAM_WT;
+                                    buffered_addr <= buffered_addr;
+                                end
+                                // one clock ahead
+                                3'b001: out_ram_data <= buffered_data[15:8];
+                                3'b010: out_ram_data <= buffered_data[23:16];
+                                3'b011: out_ram_data <= buffered_data[31:24];
+                                default: out_ram_data <= `ZERO_DATA;
+                            endcase
+                            if (cur_stage == stop_stage) begin
+                                // finish
+                                out_ram_rd_wt_flag <= `RAM_RD;
+                                out_ls_ok <= `TRUE;
+                                status <= IDLE;
+                                reg_ls_ena <= `FALSE;
+                                uart_stall <= is_to_uart;
                             end
-                            // one clock ahead
-                            3'b001: out_ram_data <= buffered_data[15:8];
-                            3'b010: out_ram_data <= buffered_data[23:16];
-                            3'b011: out_ram_data <= buffered_data[31:24];
-                            default: out_ram_data <= `ZERO_DATA;
-                        endcase
-                        if (cur_stage == stop_stage) begin
-                            // finish
+                        end else begin
+                            uart_flip <= 1;
+                            // restore
+                            out_ram_addr <= `ZERO_DATA;
                             out_ram_rd_wt_flag <= `RAM_RD;
-                            out_ls_ok <= `TRUE;
-                            status <= IDLE;
-                            reg_ls_ena <= `FALSE;
-                            uart_stall <= is_to_uart;
+                            buffered_addr <= buffered_addr;
+                            cur_stage <= cur_stage;
                         end
                     end
                 endcase

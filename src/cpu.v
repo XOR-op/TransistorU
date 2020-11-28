@@ -220,7 +220,7 @@ module cpu(
 
     memory mem_unit(
         .clk(clk_in), .rst(rst_in), .ena(rdy_in),
-        .in_rollback(pc_rollback),
+        .in_rollback(pc_rollback),.uart_full(io_buffer_full),
 
         .out_ram_rd_wt_flag(mem_wr),
         .out_ram_addr(mem_a),
