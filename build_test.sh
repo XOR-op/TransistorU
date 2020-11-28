@@ -21,7 +21,7 @@ ${rpath}riscv32-unknown-elf-objcopy -O binary ./test/test.om ./test/test.bin
 ${rpath}riscv32-unknown-elf-objdump -D ./test/test.om > ./test/test.dump
 # output
 #./getout.py
-cat ./testcase/${1%.*}.ans
+#cat ./testcase/${1%.*}.ans
 <<'COMMENT'
 python3 -c 'with open("./test/x64.ans")as p:
     str=p.read()

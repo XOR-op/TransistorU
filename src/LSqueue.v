@@ -33,7 +33,7 @@ module LSqueue(
     reg buffered_valid [`ROB_SIZE :1];
     reg committed [`ROB_SIZE :1];
     // LH and LB calls for signed-extension
-    parameter IDLE=0, STORE=1, LOAD=2, LH=3, LB=4;
+    parameter IDLE=0, STORE=1, LOAD=2, LH=3, LB=4, LHU=5, LBU=6;
     reg [2:0] busy_stat;
     reg [`ROB_WIDTH ] pending_rob;
     integer i;
@@ -117,6 +117,14 @@ module LSqueue(
                                 busy_stat <= LH;
                                 out_mem_size <= 2;
                             end
+                            3'b100: begin
+                                busy_stat <= LBU;
+                                out_mem_size <= 1;
+                            end
+                            3'b101: begin
+                                busy_stat <= LHU;
+                                out_mem_size <= 2;
+                            end
                             default: begin
                                 busy_stat <= LOAD;
                                 out_mem_size <= 4;
@@ -152,6 +160,8 @@ module LSqueue(
                         case (busy_stat)
                             LB: out_result <= {{24{in_mem_read_data[7]}}, in_mem_read_data[7:0]};
                             LH: out_result <= {{16{in_mem_read_data[15]}}, in_mem_read_data[15:0]};
+                            LBU: out_result <= {24'b0, in_mem_read_data[7:0]};
+                            LHU: out_result <= {16'b0, in_mem_read_data[15:0]};
                             default: out_result <= in_mem_read_data;
                         endcase
                     end
@@ -164,7 +174,7 @@ module LSqueue(
                 // So when it comes to LSqueue, it will be ready immediately.
                 // !commited[i] to avoid rob collision after commiting store
                 if (in_cdb_rob_tag != `ZERO_ROB && in_cdb_rob_tag == buffered_rob_tag[i] && !committed[i]
-                    && (((head < tail) && (head <= i && i < tail)) || ((head > tail) && (head <= i || i < tail)||(!empty&&head==tail)))) begin
+                    && (((head < tail) && (head <= i && i < tail)) || ((head > tail) && (head <= i || i < tail) || (!empty && head == tail)))) begin
                     buffered_data[i] <= in_cdb_data;
                     buffered_address[i] <= in_cdb_address;
                     buffered_valid[i] <= `TRUE;
@@ -173,7 +183,7 @@ module LSqueue(
 `endif
                 end
                 if (in_commit_rob != `ZERO_ROB && in_commit_rob == buffered_rob_tag[i]
-                    && (((head < tail) && (head <= i && i < tail)) || ((head > tail) && (head <= i || i < tail))||(!empty&&head==tail))) begin
+                    && (((head < tail) && (head <= i && i < tail)) || ((head > tail) && (head <= i || i < tail)) || (!empty && head == tail))) begin
                     // when commited, it must be store
                     committed[i] <= `TRUE;
                     // after issue to avoid collided assignment of last_store

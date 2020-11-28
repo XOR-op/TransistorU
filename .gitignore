@@ -2,10 +2,12 @@
 /testcase/
 /unit_test/
 /test/
+/old_test/
 /sys/
 /test_simulation/
 /emu
 /dump
+/source.c
 /metadata
 /milestone.md
 /ctrl
