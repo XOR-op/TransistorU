@@ -37,7 +37,7 @@
 `define FALSE 1'b0
 `define PREDICTED 32'b0
 `define MISPREDICTED 32'b1
-`define UART_ADDR 32'h30000
+`define PERI_ADDR 32'h30000 // ignore 0x30004 for no branch related
 
 
 // agreement

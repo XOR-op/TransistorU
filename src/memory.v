@@ -85,19 +85,19 @@ module memory(
                                 buffered_addr <= in_ls_addr+1;
                                 buffered_data <= in_ls_data;
                                 out_ram_data <= in_ls_data[7:0];
-                                out_ram_addr <= (uart_stall && in_ls_addr == `UART_ADDR) ?`ZERO_DATA :in_ls_addr;
-                                is_to_uart <= in_ls_addr == `UART_ADDR;
-                                out_ram_rd_wt_flag <= (uart_stall && in_ls_addr == `UART_ADDR) ?`RAM_RD :`RAM_WT;
-                                cur_stage <= (uart_stall && in_ls_addr == `UART_ADDR) ? 3'b000:3'b001;
+                                out_ram_addr <= (uart_stall && in_ls_addr == `PERI_ADDR) ?`ZERO_DATA :in_ls_addr;
+                                is_to_uart <= in_ls_addr == `PERI_ADDR;
+                                out_ram_rd_wt_flag <= (uart_stall && in_ls_addr == `PERI_ADDR) ?`RAM_RD :`RAM_WT;
+                                cur_stage <= (uart_stall && in_ls_addr == `PERI_ADDR) ? 3'b000:3'b001;
                             end else begin
                                 stop_stage <= reg_ls_size;
                                 buffered_addr <= reg_ls_addr+1;
                                 buffered_data <= reg_ls_data;
                                 out_ram_data <= reg_ls_data[7:0];
-                                out_ram_addr <= (uart_stall && reg_ls_addr == `UART_ADDR) ?`ZERO_DATA :reg_ls_addr;
-                                is_to_uart <= reg_ls_addr == `UART_ADDR;
-                                out_ram_rd_wt_flag <= (uart_stall && reg_ls_addr == `UART_ADDR) ?`RAM_RD :`RAM_WT;
-                                cur_stage <= (uart_stall && reg_ls_addr == `UART_ADDR) ? 3'b000:3'b001;
+                                out_ram_addr <= (uart_stall && reg_ls_addr == `PERI_ADDR) ?`ZERO_DATA :reg_ls_addr;
+                                is_to_uart <= reg_ls_addr == `PERI_ADDR;
+                                out_ram_rd_wt_flag <= (uart_stall && reg_ls_addr == `PERI_ADDR) ?`RAM_RD :`RAM_WT;
+                                cur_stage <= (uart_stall && reg_ls_addr == `PERI_ADDR) ? 3'b000:3'b001;
                             end
                             uart_flip <= 1;
                             status <= LS_WRITE;
@@ -132,7 +132,7 @@ module memory(
                     out_ram_rd_wt_flag <= `RAM_RD;
                     out_ram_addr <= `ZERO_DATA;
                 end
-            end else if (status!=LS_WRITE||!uart_full) begin
+            end else if (status != LS_WRITE || !uart_full) begin
                 // running
                 out_ram_addr <= buffered_addr;
                 out_ram_rd_wt_flag <= status != LS_WRITE ?`RAM_RD :`RAM_WT;
@@ -149,11 +149,16 @@ module memory(
                             3'b011: buffered_data[23:16] <= in_ram_data;
                             3'b100: buffered_data[31:24] <= in_ram_data;
                         endcase
+                        if (cur_stage == 3'b011) begin
+                            out_ram_addr <= `ZERO_DATA;
+                        end
                         if (cur_stage == 3'b100) begin
                             // finish
                             out_fetcher_ok <= `TRUE;
                             status <= IDLE;
                             reg_fetch_ena <= `FALSE;
+                            out_ram_addr <= `ZERO_DATA;
+                            cur_stage <= 0;
                         end
                     end
                     LS_READ: begin
@@ -164,11 +169,16 @@ module memory(
                             3'b011: buffered_data[23:16] <= in_ram_data;
                             3'b100: buffered_data[31:24] <= in_ram_data;
                         endcase
+                        if (cur_stage == stop_stage-1) begin
+                            out_ram_addr <= `ZERO_DATA;
+                        end
                         if (cur_stage == stop_stage) begin
                             // finish
                             out_ls_ok <= `TRUE;
                             status <= IDLE;
                             reg_ls_ena <= `FALSE;
+                            out_ram_addr <= `ZERO_DATA;
+                            cur_stage <= 0;
                         end
                     end
                     LS_WRITE: begin
@@ -192,6 +202,7 @@ module memory(
                             if (cur_stage == stop_stage) begin
                                 // finish
                                 out_ram_rd_wt_flag <= `RAM_RD;
+                                out_ram_addr <= `ZERO_DATA;
                                 out_ls_ok <= `TRUE;
                                 status <= IDLE;
                                 reg_ls_ena <= `FALSE;

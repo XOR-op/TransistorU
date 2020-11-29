@@ -5,7 +5,7 @@ A Tomasulo based RISC-V CPU supporting partial of rv32i ISA.
 
 ## Technical Specifications
 - Tomasulo algorithm with Reorder Buffer.
-- Support 2-bit saturating counter branch prediction of 32 entries. 
+- Support 2-bit saturating counter branch prediction of 256 entries. 
 - Directed-mapped I-cache of 128 entries.
 - Reorder Buffer of 16 entries.
 

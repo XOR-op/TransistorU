@@ -81,8 +81,11 @@ always @(posedge clk)
         ram[addr_a] <= din_a;
     q_addr_a <= addr_a;
   end
-
+`ifdef DEBUG_MACRO
+  assign dout_a = (q_addr_a==32'h30000)?0:ram[q_addr_a];
+  `else
 assign dout_a = ram[q_addr_a];
+  `endif
 
 // initialize ram content (for simulation)
 integer i;

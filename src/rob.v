@@ -48,6 +48,7 @@ module ROB(
     reg predicted_taken [`ROB_SIZE :1];
     reg jump_flag_arr [`ROB_SIZE :1];
     reg [`DATA_WIDTH ] jump_addr_arr [`ROB_SIZE :1];
+    reg peripheral_bit [`ROB_SIZE :0];
 
     // next available
     assign out_rob_available_tag = (empty || (head != tail)) ? tail:`ZERO_ROB;
@@ -60,7 +61,7 @@ module ROB(
 `ifdef DEBUG_MACRO
     reg [31:0] debug_counter = 0;
     initial begin
-        debug_counter = 0;
+    debug_counter = 0;
     end
 `endif
     always @(posedge clk) begin
@@ -74,6 +75,7 @@ module ROB(
             tail <= 1;
             ready_arr[`ZERO_ROB ] <= `FALSE;
             data_arr[`ZERO_ROB ] <= `ZERO_DATA;
+            peripheral_bit[`ZERO_ROB ]<=0;
         end else if (ena) begin
             // assignment
             if (in_assignment_ena) begin
@@ -82,15 +84,23 @@ module ROB(
                 dest_arr[tail] <= in_dest;
                 pc_arr[tail] <= in_pc;
                 predicted_taken[tail] <= in_predicted_taken;
+                peripheral_bit[tail] <= `FALSE;
                 tail <= tail == `ROB_SIZE ? 1:tail+1;
                 empty <= `FALSE;
             end
             // update
-            if (in_cdb_rob_tag != `ZERO_ROB && !in_cdb_isload) begin
-                data_arr[in_cdb_rob_tag] <= in_cdb_value;
-                ready_arr[in_cdb_rob_tag] <= `TRUE;
-                jump_flag_arr[in_cdb_rob_tag] <= in_cdb_isjump;
-                jump_addr_arr[in_cdb_rob_tag] <= in_cdb_jump_addr;
+            if (in_cdb_rob_tag != `ZERO_ROB) begin
+                if (!in_cdb_isload) begin
+                    data_arr[in_cdb_rob_tag] <= in_cdb_value;
+                    ready_arr[in_cdb_rob_tag] <= `TRUE;
+                    jump_flag_arr[in_cdb_rob_tag] <= in_cdb_isjump;
+                    jump_addr_arr[in_cdb_rob_tag] <= in_cdb_jump_addr;
+                end else begin
+                    // load 0x30000
+                    if (in_cdb_value == `PERI_ADDR) begin
+                        peripheral_bit[in_cdb_rob_tag] <= `TRUE;
+                    end
+                end
             end
             if (in_ls_cdb_rob_tag != `ZERO_ROB) begin
                 // load
@@ -99,18 +109,24 @@ module ROB(
             end
 
             // commit
-            if (!empty & ready_arr[head]) begin
+            if (!empty & (ready_arr[head]||peripheral_bit[head])) begin
                 // work state
 `ifdef DEBUG_MACRO
                 if (inst_arr[head][`OP_RANGE ] != `STORE_OP && inst_arr[head][`OP_RANGE ] != `BRANCH_OP)
-                    debug_counter <= debug_counter+1;
+                debug_counter <= debug_counter+1;
                 debug_commit_pc <= pc_arr[head];
                 debug_commit_inst <= inst_arr[head];
 `endif
+                // update head
+                if ((head+1 == tail) || (head == `RS_SIZE && tail == 1))
+                    empty <= `TRUE;
+                head <= (head == `RS_SIZE) ? 1:head+1;
+                //ready_arr[head] <= `FALSE;// avoid decode query bug
+
                 if (inst_arr[head][`OP_RANGE ] == `BRANCH_OP) begin
                     out_forwarding_ena <= `TRUE;
                     out_forwarding_taken <= jump_flag_arr[head];
-                    out_forwarding_branch_pc<=pc_arr[head];
+                    out_forwarding_branch_pc <= pc_arr[head];
                     if (jump_flag_arr[head] ^ predicted_taken[head]) begin
                         // branch mispredicted
                         out_misbranch <= `TRUE;
@@ -119,7 +135,7 @@ module ROB(
                 end else if (inst_arr[head][`OP_RANGE ] == `JALR_OP) begin
                     out_forwarding_taken <= `TRUE;
                     out_forwarding_ena <= `TRUE;
-                    out_forwarding_branch_pc<=pc_arr[head];
+                    out_forwarding_branch_pc <= pc_arr[head];
                     out_misbranch <= `TRUE;
                     out_correct_jump_addr <= jump_addr_arr[head];
                     out_reg_reg <= dest_arr[head];
@@ -128,17 +144,23 @@ module ROB(
                 end else if (inst_arr[head][`OP_RANGE ] == `STORE_OP) begin
                     // store
                     out_committed_rob_tag <= head;
+                end else if (in_ls_cdb_rob_tag == head) begin
+                    // load 0x30000 done
+                    peripheral_bit[head] <= `FALSE;
+                    out_reg_reg <= dest_arr[head];
+                    out_reg_rob <= head;
+                    out_reg_value <= in_ls_cdb_value;
+                end else if (peripheral_bit[head]) begin
+                    // wait for loading 0x30000
+                    out_committed_rob_tag <= head;
+                    empty <= empty;
+                    head <= head; // keep
                 end else begin
                     // write to register
                     out_reg_reg <= dest_arr[head];
                     out_reg_rob <= head;
                     out_reg_value <= data_arr[head];
                 end
-                // update head
-                if ((head+1 == tail) || (head == `RS_SIZE && tail == 1))
-                    empty <= `TRUE;
-                head <= (head == `RS_SIZE) ? 1:head+1;
-                //ready_arr[head] <= `FALSE;// avoid decode query bug
             end else begin
                 // avoid latch
                 out_reg_reg <= `ZERO_ROB;

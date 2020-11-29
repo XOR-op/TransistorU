@@ -69,7 +69,7 @@ module LSqueue(
                 tail <= (last_store == `ROB_SIZE) ? 1:last_store+1;
             end
             for (i = 1; i <= `ROB_SIZE;i = i+1)
-                if (!committed[i]) buffered_valid[i] <= `FALSE;
+                if (!committed[i] || buffered_inst[i][`OP_RANGE ] == `LOAD_OP) buffered_valid[i] <= `FALSE;
             // stop loading and response to memory's signal
             if (busy_stat == LOAD || (busy_stat == STORE && in_mem_ready))
                 busy_stat <= IDLE;
@@ -89,7 +89,7 @@ module LSqueue(
             // try to issue LOAD&STORE
             if (busy_stat == IDLE) begin
                 if (head != 0 && buffered_valid[head] &&
-                    (buffered_inst[head][`OP_RANGE ] == `LOAD_OP || committed[head])) begin
+                    ((buffered_inst[head][`OP_RANGE ] == `LOAD_OP && buffered_address[head] != `PERI_ADDR) || committed[head])) begin
                     out_mem_ena <= `TRUE;
                     pending_rob <= buffered_rob_tag[head];
                     buffered_rob_tag[head] <= `ZERO_ROB;
@@ -184,10 +184,11 @@ module LSqueue(
                 end
                 if (in_commit_rob != `ZERO_ROB && in_commit_rob == buffered_rob_tag[i] && !committed[i]
                     && (((head < tail) && (head <= i && i < tail)) || ((head > tail) && (head <= i || i < tail)) || (!empty && head == tail))) begin
-                    // when commited, it must be store
+                    // last_store after issue to avoid collided assignment of last_store
+                    // when commited, it can be store or load of peripheral device
                     committed[i] <= `TRUE;
-                    // after issue to avoid collided assignment of last_store
-                    last_store <= i;
+                    if (buffered_inst[i][`OP_RANGE ] == `STORE_OP)
+                        last_store <= i;
                 end
             end
         end
