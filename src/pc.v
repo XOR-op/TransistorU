@@ -1,6 +1,6 @@
 `include "constant.v"
-// `define ELEMENT prediction_table[in_forwarding_branch_pc[`PREDICTION_INDEX_RANGE ]]
-`define ELEMENT prediction_table[history]
+`define ELEMENT prediction_table[in_forwarding_branch_pc[`PREDICTION_INDEX_RANGE ]]
+// `define ELEMENT prediction_table[history]
 module pc(
     input clk, input rst, input ena,
     input in_fetcher_ena,
@@ -25,8 +25,8 @@ module pc(
         out_rollback = in_misbranch;
         // out_next_taken = in_misbranch ? in_forwarding_branch_taken:prediction_table[history] [1];
         // out_next_taken = 1;
-        // out_next_taken = in_misbranch?in_forwarding_branch_taken:prediction_table[in_last_pc[`PREDICTION_INDEX_RANGE ]] [1];
-        out_next_taken = 0;
+        out_next_taken = in_misbranch?in_forwarding_branch_taken:prediction_table[in_last_pc[`PREDICTION_INDEX_RANGE ]] [1];
+        // out_next_taken = 0;
     end
     assign out_rollback_pc = in_forwarding_correct_address;
     integer i;
@@ -36,7 +36,7 @@ module pc(
             // out_rollback <= `FALSE;
             history <= 0;
             for (i = 0; i < `PREDICTION_SLOT_SIZE;i = i+1)
-                prediction_table[i] <= 2'b01;
+                prediction_table[i] <= 2'b10;
         end else if (ena) begin
             if (in_misbranch) begin
                 out_next_pc <= in_forwarding_correct_address;
@@ -44,9 +44,9 @@ module pc(
                 if (in_last_inst[`OP_RANGE ] == `BRANCH_OP) begin
                     // predict
                     // out_next_pc <= prediction_table[history] [1] ? in_last_pc+B_IMM:in_last_pc+4;
-                    // out_next_pc <= prediction_table[in_last_pc[`PREDICTION_INDEX_RANGE ]] [1] ? in_last_pc+B_IMM:in_last_pc+4;
+                    out_next_pc <= prediction_table[in_last_pc[`PREDICTION_INDEX_RANGE ]] [1] ? in_last_pc+B_IMM:in_last_pc+4;
                     // out_next_pc <= in_last_pc+B_IMM;
-                    out_next_pc <= in_last_pc+4;
+                    // out_next_pc <= in_last_pc+4;
                 end else if (in_last_inst[`OP_RANGE ] == `JAL_OP) begin
                     out_next_pc <= in_last_pc+J_IMM;
                 end else begin
@@ -57,7 +57,7 @@ module pc(
         if (in_forwarding_ena) begin
             `ELEMENT <= `ELEMENT +(in_forwarding_branch_taken ?
                 ((`ELEMENT == 2'b11) ? 0:1):(((`ELEMENT == 2'b00) ? 0: -1)));
-            history <= {{history[`PREDICTION_HISTORY_SIZE -2:0]}, in_forwarding_branch_taken};
+            // history <= {{history[`PREDICTION_HISTORY_SIZE -2:0]}, in_forwarding_branch_taken};
         end
     end
 
