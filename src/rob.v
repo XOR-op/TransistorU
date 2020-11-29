@@ -109,11 +109,12 @@ module ROB(
 `endif
                 if (inst_arr[head][`OP_RANGE ] == `BRANCH_OP) begin
                     out_forwarding_ena <= `TRUE;
+                    out_forwarding_taken <= jump_flag_arr[head];
+                    out_forwarding_branch_pc<=pc_arr[head];
                     if (jump_flag_arr[head] ^ predicted_taken[head]) begin
                         // branch mispredicted
                         out_misbranch <= `TRUE;
                         out_correct_jump_addr <= jump_addr_arr[head];
-                        out_forwarding_taken <= jump_flag_arr[head];
                     end
                 end else if (inst_arr[head][`OP_RANGE ] == `JALR_OP) begin
                     out_forwarding_taken <= `TRUE;

@@ -1,6 +1,6 @@
 `timescale 1ns/1ps
 
- // `define DEBUG_MACRO
+// `define DEBUG_MACRO
 
 // width and capacity
 `define INSTRUCTION_WIDTH 31:0
@@ -24,9 +24,9 @@
 `define ICACHE_SIZE 128
 `define TAG_WIDTH 31:9
 `define INDEX_WIDTH 8:2
-`define PREDICTION_SLOT_SIZE 32
-`define PREDICTION_INDEX_RANGE 6:2
-
+`define PREDICTION_SLOT_SIZE 256
+`define PREDICTION_HISTORY_SIZE 8
+// `define PREDICTION_INDEX_RANGE 9:2
 
 // constant
 `define ZERO_DATA 32'b0

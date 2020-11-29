@@ -182,7 +182,7 @@ module LSqueue(
                     debug_cdb_i <= i;
 `endif
                 end
-                if (in_commit_rob != `ZERO_ROB && in_commit_rob == buffered_rob_tag[i]
+                if (in_commit_rob != `ZERO_ROB && in_commit_rob == buffered_rob_tag[i] && !committed[i]
                     && (((head < tail) && (head <= i && i < tail)) || ((head > tail) && (head <= i || i < tail)) || (!empty && head == tail))) begin
                     // when commited, it must be store
                     committed[i] <= `TRUE;

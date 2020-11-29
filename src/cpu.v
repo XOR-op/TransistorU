@@ -101,6 +101,7 @@ module cpu(
         .out_next_pc(pc_fetcher_next_pc), .out_next_taken(pc_fetcher_next_taken),
         .out_rollback_pc(pc_fetcher_rollback_pc),
 
+        .in_forwarding_ena(rob_pc_forwarding_ena),
         .in_misbranch(rob_pc_misbranch), .in_forwarding_branch_taken(rob_pc_taken),
         .in_forwarding_branch_pc(rob_pc_branch_pc), .in_forwarding_correct_address(rob_pc_correct_jump_addr),
 
